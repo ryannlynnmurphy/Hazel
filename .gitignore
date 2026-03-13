@@ -1,0 +1,9 @@
+.env
+.spotify_cache
+*.bak
+token.json
+credentials.json
+__pycache__/
+*.pyc
+logs/
+/ui/panels/

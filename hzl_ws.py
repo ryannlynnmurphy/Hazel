@@ -1,0 +1,397 @@
+#!/usr/bin/env python3
+"""
+HZL AI · WebSocket Server  (hzl_ws.py)
+Patched for hazel-v5.html
+
+Message contract (UI → server):
+  { type: 'chat',            message: str, hint: str }
+  { type: 'action',          action: 'play_pause'|'next'|'previous' }
+  { type: 'action',          action: 'turn_on'|'turn_off', entity_id: str }
+  { type: 'start_listening' }
+  { type: 'stop_listening'  }
+
+Message contract (server → UI):
+  { type: 'response',        text: str }
+  { type: 'speaking'  }
+  { type: 'listening' }
+  { type: 'thinking'  }
+  { type: 'idle'      }
+  { type: 'music_state', track: str, artist: str, playing: bool, prog: int, dur: int }
+  { type: 'weather_state',   temp, feels, hum, wind, uv, cond }
+  { type: 'calendar_state',  events: [ {time, name, sub, accent} ] }
+  { type: 'email_state',     emails: [ {av, from, subj, prev, time, unread} ] }
+  { type: 'home_state',      devices: [ {id, name, icon, on, val?} ] }
+"""
+
+import asyncio
+import json
+import logging
+import os
+import websockets
+from websockets.asyncio.server import ServerConnection
+
+# Local modules
+try:
+    from brain import get_response
+except ImportError:
+    logging.warning("brain.py not found — responses will be echoed")
+    async def get_response(message, hint=None):
+        return f"[brain.py missing] You said: {message}"
+
+try:
+    import spotify
+    from spotify import now_playing_structured, recently_played, get_queue, get_library, play, pause, skip, previous
+    SPOTIFY_AVAILABLE = True
+except ImportError:
+    logging.warning("spotify.py not found — music controls disabled")
+    SPOTIFY_AVAILABLE = False
+try:
+    from voice import speak as _speak
+    VOICE_AVAILABLE = True
+except Exception:
+    VOICE_AVAILABLE = False
+    def _speak(text): pass
+
+try:
+    from voice import start_listening, stop_listening
+    VOICE_AVAILABLE = True
+except ImportError:
+    logging.warning("voice.py not found — mic control disabled")
+    VOICE_AVAILABLE = False
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [HZL-WS] %(message)s')
+log = logging.getLogger(__name__)
+
+# Track all connected clients
+CLIENTS: set[ServerConnection] = set()
+_BUSY = False  # Prevent Hazel from responding while already processing
+
+
+async def broadcast(payload: dict):
+    """Send a message to all connected UI clients."""
+    if not CLIENTS:
+        return
+    msg = json.dumps(payload)
+    await asyncio.gather(
+        *[client.send(msg) for client in CLIENTS],
+        return_exceptions=True
+    )
+
+
+async def send(ws: ServerConnection, payload: dict):
+    """Send a message to a single client."""
+    try:
+        await ws.send(json.dumps(payload))
+    except Exception as e:
+        log.error(f"Send error: {e}")
+
+
+
+async def refresh_panels():
+    """Push updated calendar and email state to all clients."""
+    # Calendar
+    try:
+        from gcal import get_upcoming_events
+        raw = await asyncio.to_thread(get_upcoming_events, 30)
+        events = []
+        if isinstance(raw, str) and raw and not raw.startswith("No upcoming") and not raw.startswith("Calendar error"):
+            for line in raw.strip().splitlines():
+                if ": " in line:
+                    time_part, name_part = line.split(": ", 1)
+                    events.append({"time": time_part.strip(), "name": name_part.strip(), "sub": "", "accent": "gold"})
+        if events:
+            await broadcast({"type": "calendar_state", "events": events})
+            log.info(f"Calendar panel refreshed: {len(events)} events")
+    except Exception as e:
+        log.warning(f"Calendar refresh failed: {e}")
+
+    # Email
+    try:
+        from gmail import get_unread_emails
+        raw = await asyncio.to_thread(get_unread_emails, 5, True)
+        emails = []
+        if isinstance(raw, list):
+            for item in raw:
+                emails.append({"from": item.get("from",""), "subj": item.get("subject",""), "snippet": item.get("snippet",""), "id": item.get("id","")})
+        if emails:
+            await broadcast({"type": "email_state", "emails": emails})
+    except Exception as e:
+        log.warning(f"Email refresh failed: {e}")
+
+
+async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
+    """Process a chat message through brain.py and stream response back."""
+    global _BUSY
+    if _BUSY:
+        log.info("Hazel busy — dropping message")
+        return
+    _BUSY = True
+    await broadcast({"type": "thinking"})
+    log.info(f"Chat → hint={hint!r} msg={message[:60]!r}")
+
+    try:
+        # brain.py handles model routing (sonnet vs haiku) and action tag parsing
+        # Check if message is asking to read an email — pre-fetch body
+        import re as _re2
+        email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
+        if email_read:
+            from gmail import get_email_body
+            sender = email_read.group(1).strip()
+            email_body = await asyncio.to_thread(get_email_body, sender)
+            augmented = f"{message}\n\n[Email content fetched]:\n{email_body}"
+            response_text = await asyncio.to_thread(get_response, augmented, hint)
+        else:
+            response_text = await asyncio.to_thread(get_response, message, hint)
+        await broadcast({"type": "speaking"})
+        await broadcast({"type": "response", "text": response_text})
+        if VOICE_AVAILABLE:
+            import re as _re2
+            clean = _re2.sub(r'\[.*?\]', '', response_text).strip()
+            asyncio.create_task(asyncio.to_thread(_speak, clean))
+        # Parse Spotify action tags from Claude response
+        import re as _re3
+        sp_play = _re3.search(r'\[SPOTIFY:\s*play\s+(.+?)\]', response_text, _re3.IGNORECASE)
+        sp_pause = _re3.search(r'\[SPOTIFY:\s*pause\]', response_text, _re3.IGNORECASE)
+        sp_skip = _re3.search(r'\[SPOTIFY:\s*skip\]', response_text, _re3.IGNORECASE)
+        sp_prev = _re3.search(r'\[SPOTIFY:\s*previous\]', response_text, _re3.IGNORECASE)
+        if SPOTIFY_AVAILABLE:
+            if sp_play:
+                query = sp_play.group(1).strip()
+                result = await asyncio.to_thread(play, query)
+                music_data = await asyncio.to_thread(now_playing_structured)
+                recent = await asyncio.to_thread(recently_played, 5)
+                await broadcast({"type": "music_state", **music_data, "recent": recent})
+            elif sp_pause:
+                await asyncio.to_thread(pause)
+            elif sp_skip:
+                await asyncio.to_thread(skip)
+                music_data = await asyncio.to_thread(now_playing_structured)
+                recent = await asyncio.to_thread(recently_played, 5)
+                await broadcast({"type": "music_state", **music_data, "recent": recent})
+            elif sp_prev:
+                await asyncio.to_thread(previous)
+                music_data = await asyncio.to_thread(now_playing_structured)
+                recent = await asyncio.to_thread(recently_played, 5)
+                await broadcast({"type": "music_state", **music_data, "recent": recent})
+        # Also handle plain play/pause/skip from message keywords
+        if SPOTIFY_AVAILABLE and not any([sp_play, sp_pause, sp_skip, sp_prev]):
+            msg_l = message.lower()
+            if any(w in msg_l for w in ['pause music','pause spotify','stop music']):
+                await asyncio.to_thread(pause)
+            elif any(w in msg_l for w in ['skip','next track','next song']):
+                await asyncio.to_thread(skip)
+                music_data = await asyncio.to_thread(now_playing_structured)
+                recent = await asyncio.to_thread(recently_played, 5)
+                await broadcast({"type": "music_state", **music_data, "recent": recent})
+            elif any(w in msg_l for w in ['previous track','previous song','go back']):
+                await asyncio.to_thread(previous)
+        # Auto-open panel based on message keywords
+        import re as _re
+        msg_lower = message.lower()
+        panel_match = _re.search(r'\[PANEL:\s*(\w+)\]', response_text)
+        if panel_match:
+            await broadcast({"type": "panel_open", "panel": panel_match.group(1).lower()})
+        elif any(w in msg_lower for w in ['calendar','schedule','week','meeting','event']):
+            await broadcast({"type": "panel_open", "panel": "calendar"})
+        elif any(w in msg_lower for w in ['email','inbox','mail','message']):
+            await broadcast({"type": "panel_open", "panel": "email"})
+        elif any(w in msg_lower for w in ['weather','temperature','forecast','rain','wind']):
+            await broadcast({"type": "panel_open", "panel": "weather"})
+        elif any(w in msg_lower for w in ['music','spotify','song','playing','track']):
+            await broadcast({"type": "panel_open", "panel": "music"})
+        elif any(w in msg_lower for w in ['news','headline','story']):
+            await broadcast({"type": "panel_open", "panel": "news"})
+
+    except Exception as e:
+        log.error(f"Brain error: {e}")
+        await broadcast({"type": "response", "text": "Something went wrong. Please try again."})
+        _BUSY = False
+        await broadcast({"type": "idle"})
+
+
+async def handle_action(ws: ServerConnection, data: dict):
+    """Route action commands to the correct integration."""
+    action = data.get("action", "")
+    entity_id = data.get("entity_id", "")
+    log.info(f"Action: {action!r} entity={entity_id!r}")
+
+    # ── Spotify music controls ──
+    if action in ("play", "pause", "skip", "previous"):
+        if SPOTIFY_AVAILABLE:
+            try:
+                if action == "play":
+                    result = await asyncio.to_thread(play)
+                elif action == "pause":
+                    result = await asyncio.to_thread(pause)
+                elif action == "skip":
+                    result = await asyncio.to_thread(skip)
+                elif action == "previous":
+                    result = await asyncio.to_thread(previous)
+                await asyncio.sleep(0.6)
+                music_data = await asyncio.to_thread(now_playing_structured)
+                recent = await asyncio.to_thread(recently_played, 5)
+                queue = await asyncio.to_thread(get_queue, 5)
+                library = await asyncio.to_thread(get_library, 20)
+                await broadcast({"type": "music_state", **music_data, "recent": recent, "queue": queue, "library": library})
+            except Exception as e:
+                log.error(f"Spotify action error: {e}")
+        else:
+            log.warning("Spotify action received but spotify.py unavailable")
+
+    else:
+        log.warning(f"Unknown action: {action!r}")
+
+
+
+
+
+
+
+async def push_on_connect(ws):
+    """Push real data to a newly connected UI client."""
+    key = os.getenv("ANTHROPIC_API_KEY", "")
+    await ws.send(json.dumps({"type": "init_key", "key": key}))
+
+    # ── Weather (returns a plain string) ──
+    try:
+        from weather import get_weather_structured
+        w = await asyncio.to_thread(get_weather_structured)
+        if w:
+            await ws.send(json.dumps({"type": "weather_state", **w}))
+            log.info(f"Weather pushed: {w['temp']}°F feels {w['feels']}°F")
+    except Exception as e:
+        log.warning(f"Weather push failed: {e}")
+
+    # ── Calendar (returns newline-joined string "Day Month DD at HH:MM AM: Title") ──
+    try:
+        from gcal import get_upcoming_events
+        raw = await asyncio.to_thread(get_upcoming_events, 30)
+        events = []
+        if isinstance(raw, str) and raw and not raw.startswith("No upcoming") and not raw.startswith("Calendar error"):
+            for line in raw.strip().splitlines():
+                if ": " in line:
+                    time_part, name_part = line.split(": ", 1)
+                    events.append({"time": time_part.strip(), "name": name_part.strip(), "sub": "", "accent": "gold"})
+        if events:
+            await ws.send(json.dumps({"type": "calendar_state", "events": events}))
+    except Exception as e:
+        log.warning(f"Calendar push failed: {e}")
+
+    # ── Email ──
+    try:
+        from gmail import get_unread_emails
+        raw = await asyncio.to_thread(get_unread_emails, 5, True)
+        emails = []
+        if isinstance(raw, list):
+            for item in raw:
+                emails.append({"from": item.get("from",""), "subj": item.get("subject",""), "snippet": item.get("snippet",""), "id": item.get("id","")})
+        if emails:
+            await ws.send(json.dumps({"type": "email_state", "emails": emails}))
+    except Exception as e:
+        log.warning(f"Email push failed: {e}")
+
+    # ── Spotify ──
+    if SPOTIFY_AVAILABLE:
+        try:
+            music_data = await asyncio.to_thread(now_playing_structured)
+            recent = await asyncio.to_thread(recently_played, 5)
+            queue_data = await asyncio.to_thread(get_queue, 5)
+            library_data = await asyncio.to_thread(get_library, 20)
+            await ws.send(json.dumps({"type": "music_state", **music_data, "recent": recent, "queue": queue_data, "library": library_data}))
+        except Exception as e:
+            log.warning(f"Spotify push failed: {e}")
+
+
+async def handle_connection(ws: ServerConnection):
+    """Main handler for each WebSocket connection."""
+    CLIENTS.add(ws)
+    remote = ws.remote_address
+    log.info(f"Client connected: {remote}")
+
+    try:
+        # Push real data to UI on connect
+        asyncio.create_task(push_on_connect(ws))
+        async for raw in ws:
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                log.warning(f"Invalid JSON from {remote}: {raw[:80]}")
+                continue
+
+            msg_type = data.get("type", "")
+
+            if msg_type == "chat":
+                message = data.get("message", "").strip()
+                hint    = data.get("hint", None)
+                if message:
+                    asyncio.create_task(handle_chat(ws, message, hint))
+
+            elif msg_type == "action":
+                asyncio.create_task(handle_action(ws, data))
+
+            elif msg_type == "start_listening":
+                log.info("Mic: start listening")
+                await broadcast({"type": "listening"})
+                if VOICE_AVAILABLE:
+                    asyncio.create_task(asyncio.to_thread(start_listening))
+
+            elif msg_type == "stop_listening":
+                log.info("Mic: stop listening")
+                await broadcast({"type": "idle"})
+                if VOICE_AVAILABLE:
+                    asyncio.create_task(asyncio.to_thread(stop_listening))
+
+            else:
+                log.warning(f"Unknown message type: {msg_type!r}")
+
+    except websockets.exceptions.ConnectionClosedOK:
+        log.info(f"Client disconnected cleanly: {remote}")
+    except websockets.exceptions.ConnectionClosedError as e:
+        log.warning(f"Client disconnected with error: {remote} — {e}")
+    except Exception as e:
+        log.error(f"Handler error for {remote}: {e}")
+    finally:
+        CLIENTS.discard(ws)
+        log.info(f"Client removed: {remote} | Active clients: {len(CLIENTS)}")
+
+
+async def main():
+    host = os.getenv("HZL_WS_HOST", "localhost")
+    port = int(os.getenv("HZL_WS_PORT", "8765"))
+
+    log.info(f"HZL WebSocket server starting on ws://{host}:{port}")
+    async with websockets.serve(handle_connection, host, port):
+        log.info("Ready. Waiting for connections...")
+        await asyncio.Future()  # run forever
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        log.info("Shutdown requested — goodbye.")
+
+# ── Compatibility aliases for main.py ──
+_LOOP = None
+
+def broadcast_sync(payload: dict):
+    """Thread-safe broadcast — works from any thread in Python 3.13."""
+    global _LOOP
+    if _LOOP is None or not _LOOP.is_running():
+        log.warning("broadcast_sync: loop not ready, dropping: %s", payload.get("type"))
+        return
+    asyncio.run_coroutine_threadsafe(broadcast(payload), _LOOP)
+
+def set_message_handler(fn):
+    pass  # kept for main.py import compatibility
+
+def start_ws_server():
+    """Called by main.py in a thread."""
+    global _LOOP
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    _LOOP = loop
+    try:
+        loop.run_until_complete(main())
+    finally:
+        loop.close()
