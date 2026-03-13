@@ -1,0 +1,20 @@
+[
+  {
+    "name": "hello",
+    "code": "print(\"hello from Hazel\")",
+    "language": "python",
+    "description": "test snippet"
+  },
+  {
+    "name": "widget_manager",
+    "code": "// Hazel Dashboard Widget Manager\nclass WidgetManager {\n  constructor() {\n    this.widgets = new Map();\n    this.container = document.getElementById('widget-container');\n    this.activeContext = null;\n    this.timeFormat = '12h'; // Garden City, NY \u2014 12-hour format\n  }\n\n  register(name, widget) {\n    this.widgets.set(name, widget);\n    return this;\n  }\n\n  formatTime(time24) {\n    const [hours, minutes",
+    "language": "javascript",
+    "description": ""
+  },
+  {
+    "name": "daily_briefing",
+    "code": "// Daily Calendar Briefing\nconst calendarBriefing = {\n  today: {\n    date: '2026-03-12',\n    events: [\n      {\n        time: '12:00 PM',\n        title: 'HZL \u2014 File USPTO Trademarks',\n        details: \"'HZL AI' + 'Hazel'\",\n        priority: 'medium',\n        emoji: '\ud83d\udfe1'\n      },\n      {\n        time: '11:00 PM',\n        title: 'Winding Down',\n        priority: 'low',\n        emoji: '\ud83c\udf19'\n      }",
+    "language": "javascript",
+    "description": ""
+  }
+]

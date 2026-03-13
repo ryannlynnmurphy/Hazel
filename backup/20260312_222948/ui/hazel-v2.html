@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HZL</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f6f4ef;--card:#ffffff;--card2:#faf9f6;--card3:#f3f1ec;
+  --border:rgba(30,22,10,0.08);--border2:rgba(30,22,10,0.05);--border3:rgba(30,22,10,0.12);
+  --gold:#9a7432;--goldfaint:rgba(154,116,50,0.07);--goldglow:rgba(154,116,50,0.18);--goldline:rgba(154,116,50,0.25);
+  --text:#1a1510;--text2:#524a3a;--mid:#9a9080;--dim:#c8c0b0;--dimb:rgba(180,170,155,0.4);
+  --rose:#a85858;--rosefaint:rgba(168,88,88,0.07);--roselight:rgba(168,88,88,0.15);
+  --green:#4e8058;--greenfaint:rgba(78,128,88,0.08);--greenlight:rgba(78,128,88,0.15);
+  --blue:#4a6898;--bluefaint:rgba(74,104,152,0.08);
+  --amber:#b87020;--amberfaint:rgba(184,112,32,0.08);
+  --r:14px;--r2:10px;--r3:8px;
+  --font-serif:'Cormorant Garamond',serif;
+  --font-sans:'Jost',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --shadow:0 2px 16px rgba(26,21,16,0.07);
+  --shadow2:0 4px 32px rgba(26,21,16,0.10);
+}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:var(--font-sans);font-weight:300;overflow:hidden;font-size:16px;}
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+
+/* ── LAYOUT ── */
+.layout{position:relative;z-index:1;display:flex;height:100vh;}
+.chat-col{flex:1;min-width:0;display:grid;grid-template-rows:64px 88px 1px 1fr 22px 72px;padding:0 32px;}
+.drag-handle{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;position:relative;transition:background 0.2s;z-index:20;}
+.drag-handle:hover,.drag-handle.dragging{background:var(--goldline);}
+.drag-handle::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:1px;height:32px;border-radius:1px;background:var(--mid);opacity:0.5;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.brand{display:flex;align-items:baseline;gap:10px;}
+.brand-name{font-family:var(--font-serif);font-size:28px;font-style:italic;color:var(--text);letter-spacing:0.02em;}
+.brand-rule{width:1px;height:13px;background:var(--dim);align-self:center;}
+.brand-sub{font-family:var(--font-mono);font-size:9px;color:var(--mid);letter-spacing:0.28em;text-transform:uppercase;}
+.hdr-r{display:flex;align-items:center;gap:14px;}
+.clock{font-family:var(--font-mono);font-size:14px;color:var(--mid);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:background 0.4s;}
+.dot.live{background:var(--green);}
+.hdr-btn{background:none;border:1px solid var(--border);border-radius:var(--r3);padding:5px 10px;font-family:var(--font-mono);font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--mid);cursor:pointer;transition:all 0.15s;}
+.hdr-btn:hover{border-color:var(--goldline);color:var(--gold);}
+.hdr-btn.active{background:var(--goldfaint);border-color:var(--goldline);color:var(--gold);}
+
+/* ── FACE ── */
+.face-row{display:flex;align-items:center;gap:20px;padding:14px 0 12px;}
+.hface{font-size:38px;cursor:pointer;user-select:none;}
+.hface.pop{animation:fpop 0.36s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes fpop{0%{transform:scale(0.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.hface.float{animation:fl 5s ease-in-out infinite;}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.face-meta{display:flex;flex-direction:column;gap:5px;flex:1;}
+.face-top{display:flex;align-items:center;gap:10px;}
+.slabel{font-family:var(--font-mono);font-size:10px;color:var(--gold);letter-spacing:0.24em;text-transform:uppercase;}
+.bars{display:flex;align-items:flex-end;gap:3px;height:16px;opacity:0;transition:opacity 0.3s;}
+.bars.on{opacity:1;}
+.bar{width:3px;background:var(--gold);border-radius:1px;}
+.bars.on .bar:nth-child(1){animation:bv 0.7s 0.00s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(2){animation:bv 0.7s 0.10s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(3){animation:bv 0.7s 0.20s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(4){animation:bv 0.7s 0.05s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(5){animation:bv 0.7s 0.15s ease-in-out infinite alternate;}
+@keyframes bv{from{height:3px}to{height:16px}}
+
+/* ── WORKING STREAM ── */
+.working-stream{display:flex;gap:6px;align-items:center;height:18px;overflow:hidden;}
+.ws-step{font-family:var(--font-mono);font-size:9px;color:var(--mid);letter-spacing:0.08em;opacity:0;animation:wsfade 0.4s forwards;}
+@keyframes wsfade{to{opacity:1}}
+.ws-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);flex-shrink:0;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
+
+/* ── DIVIDER ── */
+.hdivider{height:1px;background:var(--border);}
+
+/* ── CHAT ── */
+.chat{overflow-y:auto;padding:12px 0 6px;scrollbar-width:thin;scrollbar-color:var(--dimb) transparent;}
+.chat::-webkit-scrollbar{width:3px;}.chat::-webkit-scrollbar-thumb{background:var(--dimb);}
+.msg{display:flex;flex-direction:column;gap:3px;margin-bottom:16px;}
+.msg.user{align-items:flex-end;}.msg.hazel{align-items:flex-start;}
+.mlabel{font-family:var(--font-mono);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);padding:0 4px;}
+.bubble{max-width:86%;padding:11px 15px;border-radius:var(--r);font-size:14px;line-height:1.72;font-weight:300;}
+.msg.user .bubble{background:var(--goldfaint);border:1px solid rgba(154,116,50,0.12);color:var(--text);border-bottom-right-radius:3px;}
+.msg.hazel .bubble{background:var(--card);border:1px solid var(--border);color:var(--text2);border-bottom-left-radius:3px;box-shadow:var(--shadow);}
+.mtime{font-family:var(--font-mono);font-size:9px;color:var(--dim);padding:0 4px;}
+
+/* deliverable bubble */
+.deliverable{max-width:90%;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow2);}
+.deliverable-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--card2);}
+.deliverable-type{font-family:var(--font-mono);font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);}
+.deliverable-actions{display:flex;gap:6px;}
+.d-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-family:var(--font-mono);font-size:8px;letter-spacing:0.12em;color:var(--mid);cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.d-btn:hover{border-color:var(--goldline);color:var(--gold);}
+.deliverable-body{padding:14px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;max-height:220px;overflow-y:auto;}
+.deliverable-body::-webkit-scrollbar{width:3px;}.deliverable-body::-webkit-scrollbar-thumb{background:var(--dimb);}
+
+.typing{display:flex;gap:6px;align-items:center;padding:12px 15px;opacity:0;transition:opacity 0.25s;pointer-events:none;}
+.typing.on{opacity:1;}
+.td{width:5px;height:5px;border-radius:50%;background:var(--mid);}
+.typing.on .td:nth-child(1){animation:dot 1.1s 0.00s ease-in-out infinite;}
+.typing.on .td:nth-child(2){animation:dot 1.1s 0.18s ease-in-out infinite;}
+.typing.on .td:nth-child(3){animation:dot 1.1s 0.36s ease-in-out infinite;}
+@keyframes dot{0%,100%{opacity:0.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+
+.transcript{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--dim);letter-spacing:0.05em;height:22px;overflow:hidden;}
+.tcur{display:inline-block;width:2px;height:12px;background:var(--gold);opacity:0;animation:blink 1.2s step-end infinite;}
+@keyframes blink{0%,100%{opacity:0}50%{opacity:1}}
+
+.irow{display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);padding-top:14px;padding-bottom:6px;}
+.irow input{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:11px 16px;font-family:var(--font-sans);font-size:14px;font-weight:300;color:var(--text);outline:none;transition:border-color 0.2s;}
+.irow input::placeholder{color:var(--dim);}
+.irow input:focus{border-color:rgba(154,116,50,0.3);}
+.send{width:42px;height:42px;border-radius:50%;background:var(--goldfaint);border:1px solid rgba(154,116,50,0.22);color:var(--gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.send:hover{background:var(--goldglow);}
+.mic{width:42px;height:42px;border-radius:50%;background:none;border:1px solid var(--border);color:var(--mid);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.mic.on{background:var(--rosefaint);border-color:var(--rose);color:var(--rose);}
+
+/* ── SPARKLE ── */
+.sp{position:fixed;pointer-events:none;z-index:9999;color:var(--gold);animation:sup 0.8s ease-out forwards;}
+@keyframes sup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-28px) scale(0.3)}}
+
+/* ── DASHBOARD PANEL ── */
+.dash{flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-width:0;transition:width 0.3s cubic-bezier(0.22,1,0.36,1);}
+.dash.closed{width:0!important;border:none;}
+.dash-layout{width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+/* dash top nav */
+.dash-nav{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.dash-nav::-webkit-scrollbar{display:none;}
+.dash-tab{flex-shrink:0;padding:0 14px;height:44px;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--mid);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.dash-tab:hover{color:var(--text);}
+.dash-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.dash-tab-icon{font-size:13px;}
+.dash-close-btn{margin-left:auto;flex-shrink:0;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:0 14px;height:44px;display:flex;align-items:center;transition:color 0.15s;}
+.dash-close-btn:hover{color:var(--text);}
+
+/* dash body area — splits into main + notif feed */
+.dash-body-area{flex:1;display:flex;overflow:hidden;}
+.dash-main{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:var(--dimb) transparent;}
+.dash-main::-webkit-scrollbar{width:3px;}.dash-main::-webkit-scrollbar-thumb{background:var(--dimb);}
+
+/* notification feed */
+.notif-feed{width:220px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--card2);}
+.notif-feed-head{padding:12px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.notif-feed-label{font-family:var(--font-mono);font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--mid);}
+.notif-list{flex:1;overflow-y:auto;padding:8px 0;scrollbar-width:thin;scrollbar-color:var(--dimb) transparent;}
+.notif-list::-webkit-scrollbar{width:2px;}.notif-list::-webkit-scrollbar-thumb{background:var(--dimb);}
+.notif-item{padding:10px 14px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.12s;}
+.notif-item:hover{background:var(--goldfaint);}
+.notif-item:last-child{border-bottom:none;}
+.notif-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:6px;vertical-align:middle;flex-shrink:0;}
+.notif-text{font-size:11px;color:var(--text2);line-height:1.5;}
+.notif-time{font-family:var(--font-mono);font-size:8px;color:var(--dim);margin-top:3px;}
+.notif-empty{padding:20px 14px;font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:0.1em;text-align:center;}
+
+/* dash opener tab */
+.dash-opener{position:fixed;right:0;top:50%;transform:translateY(-50%);width:28px;height:80px;background:var(--card);border:1px solid var(--border);border-right:none;border-radius:10px 0 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;z-index:100;box-shadow:-3px 0 12px rgba(0,0,0,0.06);transition:background 0.15s,opacity 0.2s;}
+.dash-opener:hover{background:var(--goldglow);}
+.dash-opener.hidden{opacity:0;pointer-events:none;}
+.dash-opener-icon{font-size:14px;color:var(--gold);}
+.dash-opener-label{font-family:var(--font-mono);font-size:7px;letter-spacing:0.1em;color:var(--mid);writing-mode:vertical-rl;text-transform:uppercase;}
+
+/* ── AI SHIMMER ── */
+.ai-loading{display:flex;flex-direction:column;gap:12px;padding:8px 0;}
+.shimmer{border-radius:8px;background:linear-gradient(90deg,var(--border) 25%,var(--goldfaint) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sh-title{height:26px;width:55%;}
+.sh-line{height:14px;width:100%;}
+.sh-line.short{width:70%;}
+.sh-block{height:72px;width:100%;}
+.ai-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);opacity:0.7;margin-bottom:10px;}
+.ai-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite;}
+
+/* ── INTERACTIVE PANEL CARDS ── */
+.panel-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all 0.18s;position:relative;overflow:hidden;}
+.panel-card::before{content:"";position:absolute;inset:0;background:var(--goldfaint);opacity:0;transition:opacity 0.18s;}
+.panel-card:hover::before{opacity:1;}
+.panel-card:hover{border-color:var(--goldline);transform:translateY(-1px);box-shadow:var(--shadow);}
+.panel-card-label{font-family:var(--font-mono);font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--mid);margin-bottom:6px;}
+.panel-card-title{font-family:var(--font-serif);font-size:17px;font-weight:400;color:var(--text);line-height:1.35;margin-bottom:4px;}
+.panel-card-sub{font-size:12px;color:var(--text2);line-height:1.55;}
+.panel-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.panel-card-meta{font-family:var(--font-mono);font-size:9px;color:var(--dim);}
+.panel-card-action{font-family:var(--font-mono);font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);opacity:0;}
+.panel-card:hover .panel-card-action{opacity:1;}
+.panel-card-tag{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:8px;letter-spacing:0.1em;text-transform:uppercase;}
+.tag-green{background:var(--greenfaint);color:var(--green);}
+.tag-rose{background:var(--rosefaint);color:var(--rose);}
+.tag-gold{background:var(--goldfaint);color:var(--gold);}
+.tag-blue{background:var(--bluefaint);color:var(--blue);}
+
+/* ── PANEL SECTION HEADER ── */
+.panel-section{margin-bottom:18px;}
+.panel-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.panel-section-label{font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:var(--mid);}
+.panel-section-action{font-family:var(--font-mono);font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);cursor:pointer;transition:opacity 0.15s;}
+.panel-section-action:hover{opacity:0.7;}
+
+/* ── PANEL QUICK ACTIONS ── */
+.quick-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.qa{padding:6px 12px;border:1px solid var(--border);border-radius:20px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text2);cursor:pointer;background:var(--card2);transition:all 0.15s;}
+.qa:hover{border-color:var(--goldline);color:var(--gold);background:var(--goldfaint);}
+
+/* ── TOASTS ── */
+#toasts{position:fixed;bottom:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;width:290px;pointer-events:none;}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;pointer-events:all;box-shadow:var(--shadow2);animation:tin 0.26s cubic-bezier(0.22,1,0.36,1);position:relative;overflow:hidden;}
+.toast::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--amber));}
+.toast.out{animation:tout 0.2s ease-in forwards;}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tout{to{opacity:0;transform:translateY(6px)}}
+.t-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.t-title{font-family:var(--font-mono);font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--mid);}
+.t-close{background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer;line-height:1;}
+.t-msg{font-size:12px;color:var(--text2);line-height:1.55;}
+.t-time{font-family:var(--font-mono);font-size:8px;color:var(--dim);margin-top:4px;}
+
+/* ── DRAG OVERLAY ── */
+#drag-overlay{display:none;position:fixed;inset:0;z-index:9998;cursor:col-resize;}
+#drag-overlay.on{display:block;}
+
+/* ── EMOTES ── */
+const E_CSS = "";
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+  <!-- CHAT COLUMN -->
+  <div class="chat-col" id="chatCol">
+    <header>
+      <div class="brand">
+        <span class="brand-name">Hazel</span>
+        <span class="brand-rule"></span>
+        <span class="brand-sub">HZL AI</span>
+      </div>
+      <div class="hdr-r">
+        <button class="hdr-btn" id="btnDeliverables" onclick="toggleDeliverables()" title="Deliverables tray">⊡ tray</button>
+        <span class="clock" id="clock">00:00</span>
+        <span class="dot" id="wsdot"></span>
+      </div>
+    </header>
+
+    <div class="face-row">
+      <span class="hface float" id="face" onclick="cycleEmote(event)">(◡ ◡)</span>
+      <div class="face-meta">
+        <div class="face-top">
+          <div class="slabel" id="slabel">at rest</div>
+          <div class="bars" id="bars">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+        </div>
+        <div class="working-stream" id="workingStream"></div>
+      </div>
+    </div>
+
+    <div class="hdivider"></div>
+
+    <div class="chat" id="chat">
+      <div class="msg hazel">
+        <div class="mlabel">hazel</div>
+        <div class="bubble">Good to see you. What do you need?</div>
+        <div class="mtime">—</div>
+      </div>
+      <div class="typing" id="typing">
+        <div class="td"></div><div class="td"></div><div class="td"></div>
+      </div>
+    </div>
+
+    <div class="transcript"><span id="ttxt">connecting...</span><span class="tcur"></span></div>
+
+    <div class="irow">
+      <button class="mic" id="mic" onclick="toggleMic()">◎</button>
+      <input id="inp" placeholder="type or speak..." autocomplete="off"/>
+      <button class="send" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+
+  <!-- DRAG HANDLE -->
+  <div class="drag-handle" id="dragHandle"></div>
+
+  <!-- DASHBOARD PANEL -->
+  <div class="dash closed" id="dash">
+    <div class="dash-layout">
+
+      <!-- TAB NAV -->
+      <div class="dash-nav" id="dashNav">
+        <div class="dash-tab active" data-panel="home" onclick="switchTab(this,'home')">
+          <span class="dash-tab-icon">⊞</span> overview
+        </div>
+        <div class="dash-tab" data-panel="schedule" onclick="switchTab(this,'schedule')">
+          <span class="dash-tab-icon">◷</span> calendar
+        </div>
+        <div class="dash-tab" data-panel="inbox" onclick="switchTab(this,'inbox')">
+          <span class="dash-tab-icon">✉</span> mail
+        </div>
+        <div class="dash-tab" data-panel="news" onclick="switchTab(this,'news')">
+          <span class="dash-tab-icon">◈</span> news
+        </div>
+        <div class="dash-tab" data-panel="weather" onclick="switchTab(this,'weather')">
+          <span class="dash-tab-icon">◌</span> weather
+        </div>
+        <div class="dash-tab" data-panel="tasks" onclick="switchTab(this,'tasks')">
+          <span class="dash-tab-icon">◻</span> tasks
+        </div>
+        <div class="dash-tab" data-panel="music" onclick="switchTab(this,'music')">
+          <span class="dash-tab-icon">♩</span> music
+        </div>
+        <div class="dash-tab" data-panel="fitness" onclick="switchTab(this,'fitness')">
+          <span class="dash-tab-icon">◎</span> fitness
+        </div>
+        <div class="dash-tab" data-panel="finance" onclick="switchTab(this,'finance')">
+          <span class="dash-tab-icon">◇</span> finance
+        </div>
+        <button class="dash-close-btn" onclick="closeDash()">×</button>
+      </div>
+
+      <!-- BODY: MAIN + NOTIF FEED -->
+      <div class="dash-body-area">
+        <div class="dash-main" id="dashMain">
+          <!-- populated by generateUI or static panels -->
+          <div id="panelHome" class="panel-view">
+            <div style="padding:10px 0 16px;">
+              <div style="font-family:var(--font-serif);font-size:22px;font-style:italic;color:var(--text);margin-bottom:4px;">Good to see you.</div>
+              <div style="font-family:var(--font-mono);font-size:9px;color:var(--mid);letter-spacing:0.18em;text-transform:uppercase;" id="homeDate">—</div>
+            </div>
+            <div class="quick-actions" id="homeQuickActions">
+              <div class="qa" onclick="sendPrompt('What\'s on my calendar today?')">today's schedule</div>
+              <div class="qa" onclick="sendPrompt('Check my emails')">check email</div>
+              <div class="qa" onclick="sendPrompt('What\'s the weather?')">weather</div>
+              <div class="qa" onclick="sendPrompt('What\'s in the news today?')">top news</div>
+              <div class="qa" onclick="sendPrompt('What tasks do I have?')">my tasks</div>
+              <div class="qa" onclick="sendPrompt('What\'s playing on Spotify?')">now playing</div>
+              <div class="qa" onclick="sendPrompt('Give me a fitness summary')">fitness</div>
+              <div class="qa" onclick="sendPrompt('Show my finances')">finances</div>
+            </div>
+            <div id="homeCards" style="margin-top:4px;"></div>
+          </div>
+          <div id="panelSchedule" class="panel-view" style="display:none;"></div>
+          <div id="panelInbox" class="panel-view" style="display:none;"></div>
+          <div id="panelNews" class="panel-view" style="display:none;"></div>
+          <div id="panelWeather" class="panel-view" style="display:none;"></div>
+          <div id="panelTasks" class="panel-view" style="display:none;"></div>
+          <div id="panelMusic" class="panel-view" style="display:none;"></div>
+          <div id="panelFitness" class="panel-view" style="display:none;"></div>
+          <div id="panelFinance" class="panel-view" style="display:none;"></div>
+        </div>
+
+        <!-- NOTIFICATION FEED -->
+        <div class="notif-feed">
+          <div class="notif-feed-head">
+            <div class="notif-feed-label">feed</div>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-empty">no activity yet</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- DELIVERABLES TRAY -->
+<div id="delivTray" style="display:none;position:fixed;bottom:86px;left:32px;right:32px;max-height:280px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow2);z-index:500;overflow:hidden;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--card2);">
+    <div style="font-family:var(--font-mono);font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--mid);">deliverables</div>
+    <button onclick="toggleDeliverables()" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;">×</button>
+  </div>
+  <div id="delivList" style="overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;max-height:220px;">
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--dim);text-align:center;padding:16px;">no deliverables yet</div>
+  </div>
+</div>
+
+<div class="dash-opener hidden" id="dashOpener" onclick="reopenDash()">
+  <span class="dash-opener-icon">⊞</span>
+  <span class="dash-opener-label">panel</span>
+</div>
+<div id="drag-overlay"></div>
+<div id="toasts"></div>
+
+<script>
+// ── UTILS ──
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function ts(){const n=new Date();return String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");}
+(function tick(){
+  const n=new Date();
+  document.getElementById("clock").textContent=ts();
+  const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const el=document.getElementById("homeDate");
+  if(el) el.textContent=days[n.getDay()]+" · "+months[n.getMonth()]+" "+n.getDate();
+  setTimeout(tick,1000);
+})();
+
+// ── API KEY ──
+let _apiKey="";
+async function loadApiKey(){
+  try{const r=await fetch("http://localhost:8766/apikey");const d=await r.json();_apiKey=d.key||"";}
+  catch(e){console.warn("API key load failed:",e);}
+}
+
+// ── WORKING STREAM ──
+let _wsTimer=null;
+function showWorking(steps){
+  const el=document.getElementById("workingStream");
+  if(!steps||!steps.length){el.innerHTML="";return;}
+  let i=0;
+  el.innerHTML=`<div class="ws-dot"></div><div class="ws-step">${esc(steps[0])}</div>`;
+  if(_wsTimer) clearInterval(_wsTimer);
+  _wsTimer=setInterval(()=>{
+    i=(i+1)%steps.length;
+    el.innerHTML=`<div class="ws-dot"></div><div class="ws-step">${esc(steps[i])}</div>`;
+  },1200);
+}
+function clearWorking(){
+  if(_wsTimer){clearInterval(_wsTimer);_wsTimer=null;}
+  document.getElementById("workingStream").innerHTML="";
+}
+
+// ── NOTIFICATION FEED ──
+const _notifs=[];
+function pushNotif(text,color,onClick){
+  const colors={green:"var(--green)",gold:"var(--gold)",rose:"var(--rose)",blue:"var(--blue)",mid:"var(--mid)"};
+  const dotColor=colors[color]||colors.mid;
+  const item={text,time:ts(),color:dotColor,onClick};
+  _notifs.unshift(item);
+  if(_notifs.length>40) _notifs.pop();
+  renderNotifFeed();
+}
+function renderNotifFeed(){
+  const list=document.getElementById("notifList");
+  if(!_notifs.length){list.innerHTML='<div class="notif-empty">no activity yet</div>';return;}
+  list.innerHTML=_notifs.map((n,i)=>`
+    <div class="notif-item" onclick="notifClick(${i})">
+      <div style="display:flex;align-items:flex-start;gap:6px;">
+        <span class="notif-dot" style="background:${n.color};margin-top:4px;"></span>
+        <div>
+          <div class="notif-text">${esc(n.text)}</div>
+          <div class="notif-time">${n.time}</div>
+        </div>
+      </div>
+    </div>`).join("");
+}
+function notifClick(i){
+  const n=_notifs[i];
+  if(n&&n.onClick) n.onClick();
+}
+
+// ── SYSTEM PROMPT ──
+const SYSTEM_PROMPT=`You are Hazel's living UI engine — a luxury AI home assistant.
+Generate interactive dashboard panels. Use only these CSS variables (on :root):
+--bg, --card, --card2, --card3, --border, --border2, --gold, --goldfaint, --goldglow, --text, --text2, --mid, --dim, --green, --rose, --r, --font-serif, --font-sans, --font-mono
+Also use these utility classes: .panel-card, .panel-card-label, .panel-card-title, .panel-card-sub, .panel-card-footer, .panel-card-meta, .panel-card-action, .panel-card-tag, .tag-green, .tag-rose, .tag-gold, .tag-blue, .panel-section, .panel-section-head, .panel-section-label, .qa, .quick-actions, .ai-badge, .ai-dot
+INTERACTION: Every card must call sendPrompt('...') onclick with a specific, contextual question about that item.
+For example: a news card onclick should call sendPrompt('Tell me more about: [headline]')
+A calendar event onclick should call sendPrompt('Tell me more about my [event name] event')
+RULES: No outer wrapper. Single <style> block + HTML only. No scripts. No external resources.
+Light parchment luxury aesthetic. Serif for titles. Mono for metadata. Space. Warmth. Gold.
+Make it INTERACTIVE — every element should feel clickable and purposeful.`;
+
+// ── PANEL MEMORY ──
+const _panelMemory=JSON.parse(sessionStorage.getItem("hzl_panels")||"{}");
+const _panelVersion=JSON.parse(sessionStorage.getItem("hzl_versions")||"{}");
+const _genLocks={};
+function _savePanels(){
+  try{sessionStorage.setItem("hzl_panels",JSON.stringify(_panelMemory));sessionStorage.setItem("hzl_versions",JSON.stringify(_panelVersion));}
+  catch(e){const k=Object.keys(_panelMemory);if(k.length>4){delete _panelMemory[k[0]];delete _panelVersion[k[0]];}}
+}
+
+// panel id -> DOM id mapping
+const PANEL_MAP={
+  home:"panelHome",schedule:"panelSchedule",inbox:"panelInbox",
+  news:"panelNews",weather:"panelWeather",tasks:"panelTasks",
+  music:"panelMusic",fitness:"panelFitness",finance:"panelFinance"
+};
+const TAB_MAP={
+  home:"home",schedule:"schedule",inbox:"inbox",news:"news",
+  weather:"weather",tasks:"tasks",music:"music",fitness:"fitness",finance:"finance"
+};
+
+async function generateUI(label,data,extraContext=""){
+  if(_genLocks[label]) return;
+  _genLocks[label]=true;
+  if(!_apiKey) await loadApiKey();
+  if(!_apiKey){_genLocks[label]=false;return;}
+
+  const panelId=PANEL_MAP[label];
+  const panelEl=panelId?document.getElementById(panelId):null;
+  const prev=_panelMemory[label]||null;
+  const ver=(_panelVersion[label]||0)+1;
+  _panelVersion[label]=ver;
+
+  // show shimmer if first time
+  if(panelEl&&!prev){
+    panelEl.innerHTML=`
+      <div class="ai-badge"><span class="ai-dot"></span>generating</div>
+      <div class="ai-loading">
+        <div class="shimmer sh-title"></div><div class="shimmer sh-block"></div>
+        <div class="shimmer sh-line"></div><div class="shimmer sh-line short"></div>
+      </div>`;
+  }
+
+  // switch to this tab
+  switchToLabel(label);
+
+  showWorking(["reading data…","composing layout…","refining…","almost ready…"]);
+
+  try{
+    const prevTrimmed=prev?prev.slice(0,1800):null;
+    let userMsg="";
+    if(prevTrimmed){
+      userMsg=`Previous panel (v${ver-1}):\n<prev>\n${prevTrimmed}\n</prev>\n\nUpdated data:\n${data.slice(0,800)}\n\n`;
+      if(extraContext) userMsg+=`Note: ${extraContext.slice(0,300)}\n\n`;
+      userMsg+=`Evolve this panel — same design language, updated content, always improving.`;
+    } else {
+      userMsg=`Panel: ${label}\n`;
+      if(extraContext) userMsg+=`${extraContext.slice(0,400)}\n\n`;
+      userMsg+=`Data:\n${data.slice(0,1000)}`;
+    }
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":_apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,system:SYSTEM_PROMPT,messages:[{role:"user",content:userMsg}]})
+    });
+    const json=await resp.json();
+    const html=(json.content?.[0]?.text||"").replace(/```html|```/gi,"").trim();
+    if(!html) throw new Error("empty");
+    _panelMemory[label]=html.slice(0,4000);
+    _savePanels();
+    const badge=`<div class="ai-badge" style="margin-bottom:8px"><span class="ai-dot"></span>hazel · v${ver}</div>`;
+    if(panelEl) panelEl.innerHTML=badge+html;
+    // also push a card to home if not home panel
+    if(label!=="home") pushHomeCard(label,data);
+    pushNotif(`${label} updated`,label==="inbox"?"gold":label==="news"?"blue":"green",()=>switchToLabel(label));
+  } catch(e){
+    console.warn("generateUI failed:",e);
+    if(!prev&&panelEl) panelEl.innerHTML=`<div style="color:var(--rose);font-size:13px;padding:20px">Could not generate panel.</div>`;
+  } finally {
+    _genLocks[label]=false;
+    clearWorking();
+  }
+}
+
+// push a summary card to home panel
+function pushHomeCard(label,data){
+  const homeCards=document.getElementById("homeCards");
+  if(!homeCards) return;
+  const preview=data.slice(0,120).replace(/\n/g," ");
+  const icons={schedule:"◷",inbox:"✉",news:"◈",weather:"◌",tasks:"◻",music:"♩",fitness:"◎",finance:"◇"};
+  const icon=icons[label]||"◈";
+  // remove old card for same label
+  const old=homeCards.querySelector(`[data-label="${label}"]`);
+  if(old) old.remove();
+  const card=document.createElement("div");
+  card.className="panel-card";
+  card.dataset.label=label;
+  card.onclick=()=>switchToLabel(label);
+  card.innerHTML=`
+    <div class="panel-card-label">${icon} ${label}</div>
+    <div class="panel-card-sub" style="font-size:12px;">${esc(preview)}…</div>
+    <div class="panel-card-footer">
+      <div class="panel-card-meta">${ts()}</div>
+      <div class="panel-card-action">open →</div>
+    </div>`;
+  homeCards.appendChild(card);
+}
+
+// ── TAB SWITCHING ──
+let _activeTab="home";
+function switchTab(el,label){
+  document.querySelectorAll(".dash-tab").forEach(t=>t.classList.remove("active"));
+  if(el) el.classList.add("active");
+  document.querySelectorAll(".panel-view").forEach(p=>p.style.display="none");
+  const panelId=PANEL_MAP[label];
+  if(panelId) document.getElementById(panelId).style.display="block";
+  _activeTab=label;
+}
+function switchToLabel(label){
+  openDash();
+  const tab=document.querySelector(`.dash-tab[data-panel="${label}"]`);
+  switchTab(tab,label);
+}
+
+// ── DASHBOARD OPEN/CLOSE ──
+let _dashWidth=680;
+function openDash(){
+  const dash=document.getElementById("dash");
+  const chatCol=document.getElementById("chatCol");
+  dash.classList.remove("closed");
+  dash.style.width=_dashWidth+"px";
+  chatCol.style.width=(window.innerWidth-_dashWidth-5)+"px";
+  chatCol.style.flex="none";
+  document.getElementById("dashOpener").classList.add("hidden");
+}
+function closeDash(){
+  const dash=document.getElementById("dash");
+  const chatCol=document.getElementById("chatCol");
+  dash.classList.add("closed");
+  dash.style.width="";
+  chatCol.style.width="";
+  chatCol.style.flex="1";
+  document.getElementById("dashOpener").classList.remove("hidden");
+}
+function reopenDash(){openDash();}
+
+// drag
+const handle=document.getElementById("dragHandle");
+const overlay=document.getElementById("drag-overlay");
+let _dragging=false;
+handle.addEventListener("mousedown",e=>{
+  if(document.getElementById("dash").classList.contains("closed")) return;
+  _dragging=true;handle.classList.add("dragging");overlay.classList.add("on");e.preventDefault();
+});
+document.addEventListener("mousemove",e=>{
+  if(!_dragging) return;
+  const newW=Math.max(340,Math.min(window.innerWidth-300,window.innerWidth-e.clientX-5));
+  _dashWidth=newW;
+  document.getElementById("dash").style.width=newW+"px";
+  document.getElementById("chatCol").style.width=(window.innerWidth-newW-5)+"px";
+  document.getElementById("chatCol").style.flex="none";
+});
+document.addEventListener("mouseup",()=>{
+  if(!_dragging) return;
+  _dragging=false;handle.classList.remove("dragging");overlay.classList.remove("on");
+});
+
+// ── DELIVERABLES TRAY ──
+const _deliverables=[];
+let _delivOpen=false;
+function toggleDeliverables(){
+  _delivOpen=!_delivOpen;
+  const tray=document.getElementById("delivTray");
+  tray.style.display=_delivOpen?"flex":"none";
+  document.getElementById("btnDeliverables").classList.toggle("active",_delivOpen);
+}
+function addDeliverable(type,title,content){
+  const id="deliv_"+Date.now();
+  _deliverables.unshift({id,type,title,content,time:ts()});
+  renderDeliverables();
+  pushNotif(`New deliverable: ${title}`,"gold",()=>{if(!_delivOpen)toggleDeliverables();});
+  // badge
+  const btn=document.getElementById("btnDeliverables");
+  btn.textContent=`⊡ tray (${_deliverables.length})`;
+}
+function renderDeliverables(){
+  const list=document.getElementById("delivList");
+  if(!_deliverables.length){list.innerHTML='<div style="font-family:var(--font-mono);font-size:9px;color:var(--dim);text-align:center;padding:16px;">no deliverables yet</div>';return;}
+  list.innerHTML=_deliverables.map(d=>`
+    <div class="deliverable">
+      <div class="deliverable-head">
+        <span class="deliverable-type">${esc(d.type)}</span>
+        <div class="deliverable-actions">
+          <button class="d-btn" onclick="copyDeliv('${d.id}')">copy</button>
+          <button class="d-btn" onclick="removeDeliv('${d.id}')">×</button>
+        </div>
+      </div>
+      <div style="padding:8px 14px;font-family:var(--font-serif);font-size:15px;font-style:italic;color:var(--text);">${esc(d.title)}</div>
+      <div class="deliverable-body">${esc(d.content)}</div>
+    </div>`).join("");
+}
+function copyDeliv(id){
+  const d=_deliverables.find(x=>x.id===id);
+  if(d) navigator.clipboard.writeText(d.content).then(()=>showToast("Copied to clipboard"));
+}
+function removeDeliv(id){
+  const i=_deliverables.findIndex(x=>x.id===id);
+  if(i>-1) _deliverables.splice(i,1);
+  renderDeliverables();
+}
+
+// ── EMOTES ──
+const E={happy:{f:"(◡ ◡)",l:"at rest"},thinking:{f:"(⊙ . ⊙)",l:"considering"},listening:{f:"(◉ ‿ ◉)",l:"listening"},speaking:{f:"(▴ ‿ ▴)",l:"speaking"},focused:{f:"(⊡ ‿ ⊡)",l:"focused"},music:{f:"(♩ ‿ ♩)",l:"playing"},idle:{f:"(－ ‿ －)",l:"resting"},curious:{f:"(⊙ ‿ ⊙) ?",l:"curious"}};
+const EK=Object.keys(E);let cur="happy";
+function setEmote(k){if(!E[k])return;cur=k;const fe=document.getElementById("face");fe.className="hface pop";fe.textContent=E[k].f;document.getElementById("slabel").textContent=E[k].l;setTimeout(()=>fe.className="hface float",460);}
+function cycleEmote(ev){setEmote(EK[(EK.indexOf(cur)+1)%EK.length]);sparkle(ev.clientX,ev.clientY);}
+function sparkle(x,y){["✦","◇","◈","⋆","⊹"].forEach((c,i)=>{const s=document.createElement("div");s.className="sp";s.textContent=c;s.style.cssText=`left:${x+(-20+Math.random()*40)}px;top:${y+(-8+Math.random()*16)}px;font-size:${8+Math.random()*8}px;animation-delay:${i*0.05}s;`;document.body.appendChild(s);setTimeout(()=>s.remove(),860);});}
+function setMode(m){
+  document.getElementById("bars").classList.toggle("on",m==="speaking");
+  if(m==="listening") setEmote("listening");
+  else if(m==="speaking") setEmote("speaking");
+  else if(m==="thinking"){setEmote("thinking");showWorking(["reading your message…","forming a response…","almost…"]);}
+  else if(m==="idle"){clearWorking();setEmote("idle");setTimeout(()=>{if(cur==="idle")setEmote("happy");},5000);}
+}
+
+// ── TOASTS ──
+const _tt={};
+function showToast(msg,title="notification"){
+  const id="t"+Date.now();
+  const el=document.createElement("div");
+  el.className="toast";el.id=id;
+  el.innerHTML=`<div class="t-head"><span class="t-title">${esc(title)}</span><button class="t-close" onclick="killToast('${id}')">×</button></div><div class="t-msg">${esc(msg)}</div><div class="t-time">${ts()}</div>`;
+  document.getElementById("toasts").appendChild(el);
+  _tt[id]=setTimeout(()=>killToast(id),6000);
+  pushNotif(msg,"gold");
+}
+function killToast(id){const el=document.getElementById(id);if(!el)return;clearTimeout(_tt[id]);el.classList.add("out");setTimeout(()=>el.remove(),220);}
+
+// ── CHAT ──
+function addMsg(who,txt,type){
+  const chat=document.getElementById("chat"),typing=document.getElementById("typing");
+  const d=document.createElement("div");
+  d.className="msg "+who;
+  if(type==="deliverable"&&who==="hazel"){
+    // parse out title and body — crude but effective
+    const lines=txt.split("\n");
+    const title=lines[0]||"Deliverable";
+    const body=lines.slice(1).join("\n").trim()||txt;
+    const delType=title.match(/^#+\s*(\w+)/)?.[1]||"document";
+    addDeliverable(delType,title.replace(/^#+\s*/,""),body);
+    d.innerHTML=`<div class="mlabel">hazel</div><div class="bubble">I've prepared something for you — check the deliverables tray ⊡</div><div class="mtime">${ts()}</div>`;
+  } else {
+    d.innerHTML=`<div class="mlabel">${who==="hazel"?"hazel":"you"}</div><div class="bubble">${esc(txt)}</div><div class="mtime">${ts()}</div>`;
+  }
+  chat.insertBefore(d,typing);
+  setTimeout(()=>chat.scrollTop=99999,50);
+}
+function anim(txt){const el=document.getElementById("ttxt");el.textContent="";let i=0;const t=setInterval(()=>{el.textContent+=txt[i]||"";i++;if(i>=txt.length)clearInterval(t);},18);}
+function sendPrompt(txt){
+  document.getElementById("inp").value=txt;
+  sendMsg();
+}
+function sendMsg(){
+  const inp=document.getElementById("inp"),txt=inp.value.trim();
+  if(!txt) return;
+  inp.value="";
+  addMsg("user",txt);
+  anim(txt);
+  window._typedMsg=true;
+  document.getElementById("typing").classList.add("on");
+  setMode("thinking");
+  if(window._ws&&window._ws.readyState===1)
+    window._ws.send(JSON.stringify({type:"chat",text:txt}));
+}
+document.getElementById("inp").addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg();});
+
+let micOn=false;
+function toggleMic(){
+  if(micOn) return;
+  micOn=true;
+  document.getElementById("mic").classList.add("on");
+  if(window._ws&&window._ws.readyState===1)
+    window._ws.send(JSON.stringify({type:"voice"}));
+  setTimeout(()=>{micOn=false;document.getElementById("mic").classList.remove("on");},8000);
+}
+
+// ── WEBSOCKET ──
+function connectWS(){
+  const ws=new WebSocket("ws://localhost:8765");window._ws=ws;
+  ws.onopen=()=>{
+    document.getElementById("wsdot").classList.add("live");
+    document.getElementById("ttxt").textContent="connected · say hey hazel or type below";
+    loadApiKey();
+    openDash();
+  };
+  ws.onmessage=(e)=>{
+    const d=JSON.parse(e.data);
+    if(d.state) setMode(d.state);
+    if(d.transcript&&d.transcript.trim()){
+      anim(d.transcript);
+      if(d.state==="thinking"&&!window._typedMsg) addMsg("user",d.transcript);
+      if(d.state==="voice_input") addMsg("user",d.transcript);
+      window._typedMsg=false;
+      if(d.state==="speaking"){
+        document.getElementById("typing").classList.remove("on");
+        // detect if it looks like a deliverable (long structured response)
+        const isDeliverable=d.transcript.length>400&&(d.transcript.includes("\n\n")||d.transcript.startsWith("#"));
+        addMsg("hazel",d.transcript,isDeliverable?"deliverable":null);
+      }
+    }
+    // panel updates
+    if(d.type==="calendar") generateUI("schedule",d.text||"","Beautiful weekly schedule, large readable text, color-coded events, today highlighted. Each event is a .panel-card with onclick sendPrompt asking for more details about that event.");
+    if(d.type==="email")    generateUI("inbox",d.text||"","Clean email list. Each email is a .panel-card showing sender, subject, preview. onclick sendPrompt asks Hazel to summarize or act on that email.");
+    if(d.type==="news")     generateUI("news",d.text||"","News cards. Each headline is a large .panel-card. onclick sendPrompt asks Hazel to go deeper on that story.");
+    if(d.type==="weather")  generateUI("weather",d.text||"","Beautiful weather display. Large temperature. Conditions. Forecast if available. onclick cards ask about the weather.");
+    if(d.type==="tasks")    generateUI("tasks",d.text||"","Task list with priority indicators. Each task is a .panel-card. onclick sendPrompt asks Hazel to work on or expand that task.");
+    if(d.type==="shopping") generateUI("tasks",d.text||"","Shopping list styled as tasks. Interactive cards.");
+    if(d.type==="contacts") generateUI("home",d.text||"","Contact cards showing name, email, phone. Each card onclick asks Hazel about that contact.");
+    if(d.type==="fitness")  generateUI("fitness",d.text||"","Fitness dashboard. Show activity, sleep, mood. Cards for each metric. onclick asks for more detail or suggestions.");
+    if(d.type==="finance")  generateUI("finance",d.text||"","Finance dashboard. Budgets, spending, accounts. Cards for each category. onclick asks Hazel for analysis.");
+    if(d.type==="generate_ui") generateUI(d.label||"home",d.data||"",d.prompt||"");
+    if(d.type==="spotify"){
+      setEmote("music");
+      const raw=`Now playing: ${d.track||"Unknown"} by ${d.artist||"Unknown"}\nProgress: ${d.progress||0}%`;
+      generateUI("music",raw,"Music player UI. Large track name serif italic, artist, progress bar, controls calling wsAction('spotify_pause') wsAction('spotify_skip') wsAction('spotify_prev'). onclick card asks Hazel about the artist or song.");
+    }
+    if(d.type==="deliverable") addDeliverable(d.dtype||"document",d.title||"Untitled",d.content||"");
+    if(d.type==="confirm") showConfirm(d.confirm_type, d.action);
+    if(d.type==="notify") showToast(d.message||"");
+    if(d.state==="idle") document.getElementById("typing").classList.remove("on");
+  };
+  ws.onclose=()=>{document.getElementById("wsdot").classList.remove("live");document.getElementById("ttxt").textContent="reconnecting...";setTimeout(connectWS,2500);};
+  ws.onerror=()=>ws.close();
+}
+
+function showConfirm(ctype, action){
+  const chat=document.getElementById("chat"),typing=document.getElementById("typing");
+  const d=document.createElement("div");
+  d.className="msg hazel";
+  d.innerHTML=`<div class="mlabel">hazel</div><div style="display:flex;gap:8px;margin-top:6px;"><button class="qa" style="background:var(--greenfaint);border-color:var(--green);color:var(--green);" onclick="confirmYes(this,${JSON.stringify(JSON.stringify({ctype,action}))})">yes, do it</button><button class="qa" style="background:var(--rosefaint);border-color:var(--rose);color:var(--rose);" onclick="confirmNo(this)">cancel</button></div><div class="mtime">${ts()}</div>`;
+  chat.insertBefore(d,typing);
+  setTimeout(()=>chat.scrollTop=99999,50);
+}
+function confirmYes(btn,dataStr){
+  const {ctype,action}=JSON.parse(dataStr);
+  btn.closest(".msg").remove();
+  if(window._ws&&window._ws.readyState===1) window._ws.send(JSON.stringify({type:"confirm_yes",confirm_type:ctype,action}));
+}
+function confirmNo(btn){
+  btn.closest(".msg").remove();
+  if(window._ws&&window._ws.readyState===1) window._ws.send(JSON.stringify({type:"confirm_no"}));
+}
+function wsAction(a){if(window._ws&&window._ws.readyState===1)window._ws.send(JSON.stringify({type:"action",action:a}));}
+
+connectWS();
+</script>
+</body>
+</html>

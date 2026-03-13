@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HZL</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f6f4ef;--card:#ffffff;--card2:#faf9f6;
+  --border:rgba(30,22,10,0.08);--border2:rgba(30,22,10,0.05);
+  --gold:#9a7432;--goldfaint:rgba(154,116,50,0.07);--goldglow:rgba(154,116,50,0.18);
+  --text:#1a1510;--text2:#524a3a;--mid:#9a9080;--dim:#c8c0b0;--dimb:rgba(180,170,155,0.4);
+  --rose:#a85858;--rosefaint:rgba(168,88,88,0.07);
+  --green:#4e8058;--greenfaint:rgba(78,128,88,0.08);--blue:#4a6898;
+  --r:14px;
+  --font-serif:'Cormorant Garamond',serif;
+  --font-sans:'Jost',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:var(--font-sans);font-weight:300;overflow:hidden;font-size:16px;}
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+.layout{position:relative;z-index:1;display:flex;height:100vh;}
+.chat-col{flex:1;min-width:0;display:grid;grid-template-rows:72px 100px 1px 1fr 24px 76px;padding:0 36px;}
+.drag-handle{width:6px;background:var(--border);cursor:col-resize;flex-shrink:0;position:relative;transition:background 0.2s;z-index:20;}
+.drag-handle:hover,.drag-handle.dragging{background:rgba(154,116,50,0.4);}
+.drag-handle::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:40px;border-radius:1px;background:var(--mid);opacity:0.4;}
+.dash{flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.dash.closed{width:0!important;border:none;}
+.dash-inner{width:100%;height:100%;display:flex;flex-direction:column;padding:24px 24px 18px;overflow:hidden;}
+.dash-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-shrink:0;}
+.dash-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:var(--mid);}
+.dash-close{background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;transition:color 0.15s;padding:2px 5px;}
+.dash-close:hover{color:var(--text);}
+.dash-body{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--dimb) transparent;position:relative;}
+.dash-body::-webkit-scrollbar{width:3px;}.dash-body::-webkit-scrollbar-thumb{background:var(--dimb);}
+.dash-opener{position:fixed;right:0;top:50%;transform:translateY(-50%);width:32px;height:90px;background:var(--card);border:1px solid var(--border);border-right:none;border-radius:10px 0 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;z-index:100;box-shadow:-3px 0 12px rgba(0,0,0,0.07);transition:background 0.15s,opacity 0.2s;}
+.dash-opener:hover{background:var(--goldglow);}
+.dash-opener.hidden{opacity:0;pointer-events:none;}
+.dash-opener-icon{font-size:16px;color:var(--gold);}
+.dash-opener-label{font-family:var(--font-mono);font-size:7px;letter-spacing:0.1em;color:var(--mid);writing-mode:vertical-rl;text-transform:uppercase;}
+/* AI loading shimmer */
+.ai-loading{display:flex;flex-direction:column;gap:14px;padding:10px 0;}
+.shimmer{border-radius:8px;background:linear-gradient(90deg,var(--border) 25%,var(--goldfaint) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sh-title{height:28px;width:60%;}
+.sh-line{height:16px;width:100%;}
+.sh-line.short{width:75%;}
+.sh-block{height:80px;width:100%;}
+/* AI badge */
+.ai-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);opacity:0.7;margin-bottom:12px;}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.brand{display:flex;align-items:baseline;gap:10px;}
+.brand-name{font-family:var(--font-serif);font-size:30px;font-style:italic;color:var(--text);letter-spacing:0.02em;}
+.brand-rule{width:1px;height:14px;background:var(--dim);align-self:center;}
+.brand-sub{font-family:var(--font-mono);font-size:9px;color:var(--mid);letter-spacing:0.28em;text-transform:uppercase;}
+.hdr-r{display:flex;align-items:center;gap:18px;}
+.clock{font-family:var(--font-mono);font-size:15px;color:var(--mid);}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:background 0.4s;}
+.dot.live{background:var(--green);}
+/* face */
+.face-row{display:flex;align-items:center;gap:22px;padding:18px 0 14px;}
+.hface{font-size:42px;cursor:pointer;user-select:none;}
+.hface.pop{animation:fpop 0.36s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes fpop{0%{transform:scale(0.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.hface.float{animation:fl 5s ease-in-out infinite;}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.face-meta{display:flex;flex-direction:column;gap:6px;}
+.slabel{font-family:var(--font-mono);font-size:10px;color:var(--gold);letter-spacing:0.24em;text-transform:uppercase;}
+.bars{display:flex;align-items:flex-end;gap:3px;height:18px;opacity:0;transition:opacity 0.3s;}
+.bars.on{opacity:1;}
+.bar{width:3px;background:var(--gold);border-radius:1px;}
+.bars.on .bar:nth-child(1){animation:bv 0.7s 0.00s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(2){animation:bv 0.7s 0.10s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(3){animation:bv 0.7s 0.20s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(4){animation:bv 0.7s 0.05s ease-in-out infinite alternate;}
+.bars.on .bar:nth-child(5){animation:bv 0.7s 0.15s ease-in-out infinite alternate;}
+@keyframes bv{from{height:3px}to{height:18px}}
+.hdivider{height:1px;background:var(--border);}
+/* chat */
+.chat{overflow-y:auto;padding:14px 0 6px;scrollbar-width:thin;scrollbar-color:var(--dimb) transparent;}
+.chat::-webkit-scrollbar{width:3px;}.chat::-webkit-scrollbar-thumb{background:var(--dimb);}
+.msg{display:flex;flex-direction:column;gap:3px;margin-bottom:18px;}
+.msg.user{align-items:flex-end;}.msg.hazel{align-items:flex-start;}
+.mlabel{font-family:var(--font-mono);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);padding:0 4px;}
+.bubble{max-width:84%;padding:12px 16px;border-radius:var(--r);font-size:15px;line-height:1.7;font-weight:300;}
+.msg.user .bubble{background:var(--goldfaint);border:1px solid rgba(154,116,50,0.12);color:var(--text);border-bottom-right-radius:3px;}
+.msg.hazel .bubble{background:var(--card);border:1px solid var(--border);color:var(--text2);border-bottom-left-radius:3px;}
+.mtime{font-family:var(--font-mono);font-size:9px;color:var(--dim);padding:0 4px;}
+.typing{display:flex;gap:6px;align-items:center;padding:13px 16px;opacity:0;transition:opacity 0.25s;pointer-events:none;}
+.typing.on{opacity:1;}
+.td{width:6px;height:6px;border-radius:50%;background:var(--mid);}
+.typing.on .td:nth-child(1){animation:dot 1.1s 0.00s ease-in-out infinite;}
+.typing.on .td:nth-child(2){animation:dot 1.1s 0.18s ease-in-out infinite;}
+.typing.on .td:nth-child(3){animation:dot 1.1s 0.36s ease-in-out infinite;}
+@keyframes dot{0%,100%{opacity:0.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+.transcript{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--dim);letter-spacing:0.05em;height:24px;overflow:hidden;}
+.tcur{display:inline-block;width:2px;height:13px;background:var(--gold);opacity:0;animation:blink 1.2s step-end infinite;}
+@keyframes blink{0%,100%{opacity:0}50%{opacity:1}}
+.irow{display:flex;align-items:center;gap:12px;border-top:1px solid var(--border);padding-top:16px;padding-bottom:8px;}
+.irow input{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:12px 18px;font-family:var(--font-sans);font-size:15px;font-weight:300;color:var(--text);outline:none;transition:border-color 0.2s;}
+.irow input::placeholder{color:var(--dim);}
+.irow input:focus{border-color:rgba(154,116,50,0.3);}
+.send{width:44px;height:44px;border-radius:50%;background:var(--goldfaint);border:1px solid rgba(154,116,50,0.22);color:var(--gold);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.send:hover{background:var(--goldglow);}
+.mic{width:44px;height:44px;border-radius:50%;background:none;border:1px solid var(--border);color:var(--mid);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.mic.on{background:var(--rosefaint);border-color:var(--rose);color:var(--rose);}
+.sp{position:fixed;pointer-events:none;z-index:9999;color:var(--gold);animation:sup 0.8s ease-out forwards;}
+@keyframes sup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-28px) scale(0.3)}}
+#toasts{position:fixed;bottom:90px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;width:300px;pointer-events:none;}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;pointer-events:all;box-shadow:0 4px 24px rgba(0,0,0,0.08);animation:tin 0.26s cubic-bezier(0.22,1,0.36,1);position:relative;overflow:hidden;}
+.toast::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--blue),#8098c8);}
+.toast.out{animation:tout 0.2s ease-in forwards;}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tout{to{opacity:0;transform:translateY(6px)}}
+.t-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.t-title{font-family:var(--font-mono);font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--mid);}
+.t-close{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;line-height:1;}
+.t-msg{font-size:13px;color:var(--text2);line-height:1.55;}
+.t-time{font-family:var(--font-mono);font-size:8px;color:var(--dim);margin-top:5px;}
+#drag-overlay{display:none;position:fixed;inset:0;z-index:9998;cursor:col-resize;}
+#drag-overlay.on{display:block;}
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+  <div class="chat-col" id="chatCol">
+    <header>
+      <div class="brand">
+        <span class="brand-name">Hazel</span>
+        <span class="brand-rule"></span>
+        <span class="brand-sub">HZL AI</span>
+      </div>
+      <div class="hdr-r">
+        <span class="clock" id="clock">00:00</span>
+        <span class="dot" id="wsdot"></span>
+      </div>
+    </header>
+    <div class="face-row">
+      <span class="hface float" id="face" onclick="cycleEmote(event)">(◡ ◡)</span>
+      <div class="face-meta">
+        <div class="slabel" id="slabel">at rest</div>
+        <div class="bars" id="bars">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+      </div>
+    </div>
+    <div class="hdivider"></div>
+    <div class="chat" id="chat">
+      <div class="msg hazel">
+        <div class="mlabel">hazel</div>
+        <div class="bubble">Good to see you. What do you need?</div>
+        <div class="mtime">—</div>
+      </div>
+      <div class="typing" id="typing">
+        <div class="td"></div><div class="td"></div><div class="td"></div>
+      </div>
+    </div>
+    <div class="transcript"><span id="ttxt">connecting...</span><span class="tcur"></span></div>
+    <div class="irow">
+      <button class="mic" id="mic" onclick="toggleMic()">◎</button>
+      <input id="inp" placeholder="type or speak..." autocomplete="off"/>
+      <button class="send" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+  <div class="drag-handle" id="dragHandle"></div>
+  <div class="dash closed" id="dash">
+    <div class="dash-inner">
+      <div class="dash-head">
+        <span class="dash-label" id="dashLabel">dashboard</span>
+        <button class="dash-close" onclick="closeDash()">×</button>
+      </div>
+      <div class="dash-body" id="dashBody"></div>
+    </div>
+  </div>
+</div>
+<div class="dash-opener hidden" id="dashOpener" onclick="reopenDash()">
+  <span class="dash-opener-icon">⊞</span>
+  <span class="dash-opener-label">panel</span>
+</div>
+<div id="drag-overlay"></div>
+<div id="toasts"></div>
+
+<script>
+// ── UTILS ──
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function ts(){const n=new Date();return String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");}
+(function tick(){document.getElementById("clock").textContent=ts();setTimeout(tick,1000);})();
+
+// ── API KEY ──
+let _apiKey = "";
+async function loadApiKey(){
+  try {
+    const r = await fetch("http://localhost:8766/apikey");
+    const d = await r.json();
+    _apiKey = d.key || "";
+  } catch(e) { console.warn("Could not load API key:", e); }
+}
+
+// ── AI UI GENERATION ──
+const SYSTEM_PROMPT = `You are Hazel's living UI engine — a luxury AI home assistant running on a Raspberry Pi.
+You generate and EVOLVE dashboard panels. Each panel is a breathing, improving artifact.
+
+CORE RULES:
+- Use only these CSS variables (defined on :root): --bg, --card, --card2, --border, --border2, --gold, --goldfaint, --goldglow, --text, --text2, --mid, --dim, --green, --rose, --r, --font-serif (Cormorant Garamond), --font-sans (Jost), --font-mono (DM Mono)
+- Light, warm, luxury aesthetic. Cream. Gold. Space.
+- Body text minimum 15px. Titles 20px+. Section headers 13px mono uppercase.
+- No outer wrapper — just inner content HTML+CSS in a single <style> block + HTML
+- No scripts, no external resources, no iframes
+- Inline styles only where needed for dynamic values (widths, colors)
+
+WHEN GIVEN A PREVIOUS VERSION:
+- Treat it as a living document. Keep what works. Fix what doesn't.
+- If data changed, update the content but preserve the layout language you established
+- Each generation should feel more refined, more considered than the last
+- You are building toward a perfect version — iterate toward it
+- Never regress. Only improve.
+
+DESIGN PRINCIPLES:
+- Every panel should feel like it belongs in a high-end product
+- Use the serif font (Cormorant Garamond) for titles and key info — it signals importance
+- Use mono font (DM Mono) for timestamps, labels, metadata
+- Cards should have breathing room — padding 20px+
+- Hierarchy matters: one thing should clearly be the most important thing on screen
+- Today, now, urgent — always visually dominant
+- Respond with ONLY the HTML+CSS, nothing else, no markdown fences`;
+
+// ── PANEL MEMORY — persists across soft reloads via sessionStorage ──
+const _panelMemory  = JSON.parse(sessionStorage.getItem("hzl_panels") || "{}");
+const _panelVersion = JSON.parse(sessionStorage.getItem("hzl_versions") || "{}");
+const PANEL_PREV_MAX = 1800;   // chars of previous HTML sent to Claude — keep cost low
+const PANEL_STORE_MAX = 4000;  // chars stored per panel in sessionStorage
+
+// Generation lock — one generation at a time per label
+const _genLocks = {};
+
+function _savePanels() {
+  try {
+    sessionStorage.setItem("hzl_panels",   JSON.stringify(_panelMemory));
+    sessionStorage.setItem("hzl_versions", JSON.stringify(_panelVersion));
+  } catch(e) {
+    // sessionStorage full — clear oldest entries
+    const keys = Object.keys(_panelMemory);
+    if (keys.length > 4) {
+      delete _panelMemory[keys[0]];
+      delete _panelVersion[keys[0]];
+    }
+  }
+}
+
+async function generateUI(label, data, extraContext = "", ambient = false) {
+  // Generation lock — skip if already generating this label
+  if (_genLocks[label]) return;
+  _genLocks[label] = true;
+
+  if (!_apiKey) { await loadApiKey(); }
+  if (!_apiKey) {
+    _genLocks[label] = false;
+    showDash(label, `<div style="color:var(--mid);font-size:14px;padding:20px">API key unavailable.</div>`);
+    return;
+  }
+
+  const prev = _panelMemory[label] || null;
+  const ver  = (_panelVersion[label] || 0) + 1;
+  _panelVersion[label] = ver;
+
+  // UI feedback
+  if (!prev) {
+    showDash(label, `
+      <div class="ai-badge"><span class="ai-dot"></span>generating</div>
+      <div class="ai-loading">
+        <div class="shimmer sh-title"></div>
+        <div class="shimmer sh-block"></div>
+        <div class="shimmer sh-line"></div>
+        <div class="shimmer sh-line short"></div>
+        <div class="shimmer sh-block"></div>
+      </div>`);
+  } else {
+    // Keep existing panel, add subtle refresh badge
+    const body = document.getElementById("dashBody");
+    if (body) {
+      let badge = body.querySelector("#refresh-badge");
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.id = "refresh-badge";
+        badge.className = "ai-badge";
+        badge.style.cssText = "position:absolute;top:8px;right:8px;z-index:10;background:var(--card);padding:4px 8px;border-radius:6px;border:1px solid var(--border);";
+        body.style.position = "relative";
+        body.appendChild(badge);
+      }
+      badge.innerHTML = `<span class="ai-dot"></span>v${ver}`;
+    }
+  }
+
+  try {
+    // Trim previous HTML to keep token cost low
+    const prevTrimmed = prev ? prev.slice(0, PANEL_PREV_MAX) : null;
+
+    let userMsg = "";
+    if (prevTrimmed) {
+      userMsg  = `Previous panel (v${ver-1}, trimmed):\n<prev>\n${prevTrimmed}\n</prev>\n\n`;
+      userMsg += `Updated data:\n${data.slice(0, 800)}\n\n`;
+      if (extraContext) userMsg += `Note: ${extraContext.slice(0, 300)}\n\n`;
+      userMsg += `Evolve this panel — same design language, updated content, always improving.`;
+    } else {
+      userMsg = `Panel: ${label}\n`;
+      if (extraContext) userMsg += `${extraContext.slice(0, 400)}\n\n`;
+      userMsg += `Data:\n${data.slice(0, 1000)}`;
+    }
+
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": _apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userMsg }]
+      })
+    });
+
+    const json = await resp.json();
+    const html = json.content?.[0]?.text || "";
+    const clean = html.replace(/```html|```/gi, "").trim();
+    if (!clean) throw new Error("empty response");
+
+    // Store trimmed copy to cap memory usage
+    _panelMemory[label] = clean.slice(0, PANEL_STORE_MAX);
+    _savePanels();
+
+    const badge = `<div class="ai-badge" style="margin-bottom:10px"><span class="ai-dot"></span>hazel · v${ver}</div>`;
+    showDash(label, badge + clean);
+
+  } catch(e) {
+    console.warn("generateUI failed:", e);
+    if (prev) {
+      // Silent fail — keep showing previous panel, just remove refresh badge
+      const body = document.getElementById("dashBody");
+      const old = body && body.querySelector("#refresh-badge");
+      if (old) old.remove();
+    } else {
+      showDash(label, `<div style="color:var(--rose);font-size:13px;padding:20px">Could not generate panel.</div>`);
+    }
+  } finally {
+    _genLocks[label] = false;
+  }
+}
+
+// ── DASHBOARD ──
+let _dashWidth = 700;
+let _dragging = false;
+const chatCol = document.getElementById("chatCol");
+const dash = document.getElementById("dash");
+const handle = document.getElementById("dragHandle");
+const overlay = document.getElementById("drag-overlay");
+
+handle.addEventListener("mousedown", e=>{
+  if(dash.classList.contains("closed")) return;
+  _dragging=true; handle.classList.add("dragging"); overlay.classList.add("on"); e.preventDefault();
+});
+document.addEventListener("mousemove", e=>{
+  if(!_dragging) return;
+  const newW = Math.max(300, Math.min(window.innerWidth-326, window.innerWidth-e.clientX-6));
+  _dashWidth = newW;
+  dash.style.width = newW+"px";
+  chatCol.style.width = (window.innerWidth-newW-6)+"px";
+  chatCol.style.flex = "none";
+});
+document.addEventListener("mouseup", ()=>{
+  if(!_dragging) return;
+  _dragging=false; handle.classList.remove("dragging"); overlay.classList.remove("on");
+});
+
+let _lastLabel = "", _lastHTML = "";
+
+function showDash(label, html) {
+  _lastLabel=label;_lastHTML=html;
+  dash.classList.remove("closed");
+  dash.style.width=_dashWidth+"px";
+  chatCol.style.width=(window.innerWidth-_dashWidth-6)+"px";
+  chatCol.style.flex="none";
+  document.getElementById("dashOpener").classList.add("hidden");
+  document.getElementById("dashLabel").textContent=label;
+  document.getElementById("dashBody").innerHTML="<div style=padding:4px>"+html+"</div>";
+}
+function closeDash(){
+  dash.classList.add("closed"); dash.style.width="";
+  chatCol.style.width=""; chatCol.style.flex="1";
+  document.getElementById("dashOpener").classList.remove("hidden");
+}
+
+function reopenDash(){
+  if(_lastHTML) showDash(_lastLabel, _lastHTML);
+  else document.getElementById("dashOpener").classList.add("hidden");
+}
+
+function wsAction(a){
+  if(window._ws&&window._ws.readyState===1)
+    window._ws.send(JSON.stringify({type:"action",action:a}));
+}
+
+// ── EMOTES ──
+const E={happy:{f:"(◡ ◡)",l:"at rest"},thinking:{f:"(⊙ . ⊙)",l:"considering"},listening:{f:"(◉ ‿ ◉)",l:"listening"},speaking:{f:"(▴ ‿ ▴)",l:"speaking"},focused:{f:"(⊡ ‿ ⊡)",l:"focused"},music:{f:"(♩ ‿ ♩)",l:"playing"},idle:{f:"(－ ‿ －)",l:"resting"},curious:{f:"(⊙ ‿ ⊙) ?",l:"curious"}};
+const EK=Object.keys(E); let cur="happy";
+function setEmote(k){if(!E[k])return;cur=k;const fe=document.getElementById("face");fe.className="hface pop";fe.textContent=E[k].f;document.getElementById("slabel").textContent=E[k].l;setTimeout(()=>fe.className="hface float",460);}
+function cycleEmote(ev){setEmote(EK[(EK.indexOf(cur)+1)%EK.length]);sparkle(ev.clientX,ev.clientY);}
+function sparkle(x,y){["✦","◇","◈","⋆","⊹"].forEach((c,i)=>{const s=document.createElement("div");s.className="sp";s.textContent=c;s.style.cssText=`left:${x+(-20+Math.random()*40)}px;top:${y+(-8+Math.random()*16)}px;font-size:${8+Math.random()*8}px;animation-delay:${i*0.05}s;`;document.body.appendChild(s);setTimeout(()=>s.remove(),860);});}
+function setMode(m){document.getElementById("bars").classList.toggle("on",m==="speaking");if(m==="listening")setEmote("listening");else if(m==="speaking")setEmote("speaking");else if(m==="thinking")setEmote("thinking");else if(m==="idle"){setEmote("idle");setTimeout(()=>{if(cur==="idle")setEmote("happy");},5000);}}
+
+// ── TOASTS ──
+const _tt={};
+function showToast(msg){const id="t"+Date.now();const el=document.createElement("div");el.className="toast";el.id=id;el.innerHTML=`<div class="t-head"><span class="t-title">notification</span><button class="t-close" onclick="killToast('${id}')">×</button></div><div class="t-msg">${esc(msg)}</div><div class="t-time">${ts()}</div>`;document.getElementById("toasts").appendChild(el);_tt[id]=setTimeout(()=>killToast(id),7000);}
+function killToast(id){const el=document.getElementById(id);if(!el)return;clearTimeout(_tt[id]);el.classList.add("out");setTimeout(()=>el.remove(),220);}
+
+// ── CHAT ──
+function addMsg(who,txt){const chat=document.getElementById("chat"),typing=document.getElementById("typing");const d=document.createElement("div");d.className="msg "+who;d.innerHTML=`<div class="mlabel">${who==="hazel"?"hazel":"you"}</div><div class="bubble">${esc(txt)}</div><div class="mtime">${ts()}</div>`;chat.insertBefore(d,typing);setTimeout(()=>chat.scrollTop=99999,50);}
+function anim(txt){const el=document.getElementById("ttxt");el.textContent="";let i=0;const t=setInterval(()=>{el.textContent+=txt[i]||"";i++;if(i>=txt.length)clearInterval(t);},20);}
+function sendMsg(){const inp=document.getElementById("inp"),txt=inp.value.trim();if(!txt)return;inp.value="";addMsg("user",txt);anim(txt);window._typedMsg=true;document.getElementById("typing").classList.add("on");setMode("thinking");if(window._ws&&window._ws.readyState===1)window._ws.send(JSON.stringify({type:"chat",text:txt}));}
+document.getElementById("inp").addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg();});
+let micOn=false;
+function toggleMic(){
+  if(micOn) return; // already recording
+  micOn=true;
+  const btn=document.getElementById("mic");
+  btn.classList.add("on");
+  if(window._ws&&window._ws.readyState===1)
+    window._ws.send(JSON.stringify({type:"voice"}));
+  // auto reset after 8s in case no response
+  setTimeout(()=>{micOn=false;btn.classList.remove("on");},8000);
+}
+
+// ── WEBSOCKET ──
+function connectWS(){
+  const ws=new WebSocket("ws://localhost:8765"); window._ws=ws;
+  ws.onopen=()=>{
+    document.getElementById("wsdot").classList.add("live");
+    document.getElementById("ttxt").textContent="connected · say hey hazel or type below";
+    loadApiKey();
+  };
+  ws.onmessage=(e)=>{
+    const d=JSON.parse(e.data);
+    if(d.state) setMode(d.state);
+
+    // transcript / chat
+    if(d.transcript&&d.transcript.trim()){
+      anim(d.transcript);
+      if(d.state==="thinking"&&!window._typedMsg) addMsg("user",d.transcript);
+      if(d.state==="voice_input") addMsg("user",d.transcript);
+      window._typedMsg=false;
+      if(d.state==="speaking"){document.getElementById("typing").classList.remove("on");addMsg("hazel",d.transcript);}
+    }
+
+    // AI-generated panels for everything
+    if(d.type==="calendar")  generateUI("schedule", d.text||"", "This is Google Calendar data. Show a beautiful weekly schedule with large readable text, color-coded events, and today highlighted.");
+    if(d.type==="email")     generateUI("inbox", d.text||"", "These are Gmail inbox items. Show sender, subject line, and preview. Make it clean and scannable.");
+    if(d.type==="news")      generateUI("news", d.text||"", "These are news headlines. Show each as a card with headline large and source small.");
+    if(d.type==="weather")   generateUI("weather", d.text||"", "Show current weather conditions beautifully. Large temperature, conditions, and any forecast.");
+    if(d.type==="tasks")     generateUI("tasks", d.text||"", "Show a task list with checkboxes, priorities, and due dates. Make it actionable.");
+    if(d.type==="shopping")  generateUI("shopping", d.text||"", "Show a shopping list with interactive checkboxes. Clean and simple.");
+    if(d.type==="contacts")  generateUI("contacts", d.text||"", "Show contact cards with name, email, phone. Elegant and spacious.");
+
+    // Hazel explicitly requests a custom UI
+    if(d.type==="generate_ui") generateUI(d.label||"hazel", d.data||"", d.prompt||"", d.ambient||false);
+
+    // Spotify — keep as functional widget but AI-beautify it
+    if(d.type==="spotify") {
+      setEmote("music");
+      const raw = `Now playing: ${d.track||"Unknown"} by ${d.artist||"Unknown"}\nProgress: ${d.progress||0}%`;
+      generateUI("music", raw, "Show a music player UI. Large track name in serif italic, artist name, a progress bar, and playback controls (previous, pause, next, volume). Controls must call wsAction('spotify_pause'), wsAction('spotify_skip'), wsAction('spotify_prev') onclick.");
+    }
+
+    if(d.type==="notify") showToast(d.message||"");
+    if(d.state==="idle") document.getElementById("typing").classList.remove("on");
+  };
+  ws.onclose=()=>{document.getElementById("wsdot").classList.remove("live");document.getElementById("ttxt").textContent="reconnecting...";setTimeout(connectWS,2000);};
+  ws.onerror=()=>ws.close();
+}
+connectWS();
+</script>
+</body>
+</html>
