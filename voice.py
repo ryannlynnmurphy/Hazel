@@ -154,7 +154,7 @@ def speak(text: str):
 def _speak_elevenlabs(text: str):
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
     headers = {
-        "Accept":       f"audio/{ELEVENLABS_FORMAT}",
+        "Accept":       "audio/mpeg",
         "Content-Type": "application/json",
         "xi-api-key":   ELEVENLABS_API_KEY,
     }
@@ -168,21 +168,21 @@ def _speak_elevenlabs(text: str):
             "use_speaker_boost": True,
         },
     }
-
     response = requests.post(url, headers=headers, json=payload, stream=True, timeout=15)
     response.raise_for_status()
-
     mp3 = tempfile.mktemp(suffix=".mp3")
+    wav = tempfile.mktemp(suffix=".wav")
     with open(mp3, "wb") as f:
         for chunk in response.iter_content(chunk_size=4096):
             if chunk:
                 f.write(chunk)
-
-    subprocess.run(
-        ["mpg123", "-a", SPEAKER_CARD, "-q", mp3],
-        check=True, capture_output=True
-    )
+    # Convert MP3 to WAV and play via aplay (Blue Yeti compatible)
+    subprocess.run(["ffmpeg", "-y", "-i", mp3, "-ar", "44100", "-ac", "2", wav],
+                   check=True, capture_output=True)
+    subprocess.run(["aplay", "-D", SPEAKER_CARD, "-q", wav],
+                   check=True, capture_output=True)
     os.remove(mp3)
+    os.remove(wav)
 
 
 def _speak_piper(text: str):
