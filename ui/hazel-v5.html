@@ -1188,6 +1188,7 @@ function handleWS(d) {
   else if (d.type === 'init_key')   { window.__HZL_KEY = d.key; }
   else if (d.type === 'contacts_state') { S.contacts = d.contacts || []; renderContactsPanel(); }
   else if (d.type === 'news_state') { S.news = d.news || []; renderNewsPanel(); }
+      if (d.type === 'meds_state') { S.medications = d.medications || []; renderMedsPanel(); }
   else if (d.type === 'panel_open') { switchTab(d.panel); }
 }
 
