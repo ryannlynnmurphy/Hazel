@@ -53,6 +53,15 @@ body {
 @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-35px,-45px)} }
 @keyframes drift3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-30px)} }
 
+
+.news-cat-btn {
+  padding: 6px 12px; border-radius: 6px; border: 1px solid var(--cream-3);
+  background: transparent; font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-4);
+  cursor: pointer; transition: all .15s;
+}
+.news-cat-btn.active { background: var(--gold); color: white; border-color: var(--gold); }
+.news-cat-btn:hover:not(.active) { background: var(--cream); }
 /* ─── LAYOUT ─── */
 #shell {
   position: relative; z-index: 1;
@@ -251,7 +260,7 @@ body.listening #listen-bars { opacity: 1; }
 }
 #msg-input::placeholder { color: var(--ink-5); }
 .input-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: none;
+  width: 40px; height: 40px; border-radius: 50%; border: none;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: all .18s; flex-shrink: 0;
 }
@@ -383,21 +392,161 @@ body.listening #listen-bars { opacity: 1; }
 .wx-hr-v { font-size:12px; font-weight:500; color:var(--ink); }
 
 /* ── CALENDAR PANEL ── */
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.cal-nav { display: flex; gap: 8px; }
+.cal-nav-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--cream-3);
+  background: transparent; color: var(--ink-4); cursor: pointer; font-size: 14px;
+  transition: all .15s;
+}
+.cal-nav-btn:hover { background: var(--cream); color: var(--ink); }
+.cal-title-wrap { text-align: center; }
 .cal-date-big {
   font-family: 'Playfair Display', serif;
-  font-size: 48px; font-weight: 400; line-height: 1; color: var(--ink); margin-bottom: 2px;
+  font-size: 42px; font-weight: 400; line-height: 1; color: var(--ink); margin-bottom: 2px;
 }
 .cal-date-sub {
-  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-4); letter-spacing:.06em; margin-bottom: 20px;
+  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-4); letter-spacing:.06em;
 }
-.cal-events { display: flex; flex-direction: column; gap: 8px; }
+.cal-view-tabs {
+  display: flex; gap: 4px; margin-bottom: 20px; background: var(--cream); border-radius: 8px; padding: 4px;
+}
+.cal-view-tab {
+  flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 6px;
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-4); cursor: pointer; transition: all .15s;
+}
+.cal-view-tab.active { background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+/* Day View */
+.cal-day-timeline { position: relative; }
+.cal-hour-row {
+  display: flex; align-items: flex-start; min-height: 48px; border-top: 1px solid var(--cream-2);
+}
+.cal-hour-label {
+  width: 48px; flex-shrink: 0; font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--ink-5); padding-top: 4px;
+}
+.cal-hour-content { flex: 1; position: relative; min-height: 48px; }
 .cal-event {
-  display: flex; gap: 12px; align-items: flex-start;
-  padding: 11px 14px; background: var(--cream); border-radius: var(--r);
+  position: relative; margin: 2px 0;
+  padding: 8px 12px; background: var(--gold-l); border-radius: 8px;
   border-left: 3px solid var(--gold);
-  cursor: pointer; transition: background .15s;
+  cursor: pointer; transition: all .15s;
 }
-.cal-event:hover { background: var(--cream-2); }
+.cal-event:hover { background: var(--cream-2); transform: translateX(2px); }
+.cal-event-time {
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 2px;
+}
+.cal-event-name { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.3; }
+.cal-event-sub { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+/* Week View */
+.cal-week-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+}
+.cal-week-day {
+  background: var(--cream); border-radius: 10px; padding: 10px; min-height: 120px;
+  cursor: pointer; transition: all .15s;
+}
+.cal-week-day:hover { background: var(--cream-2); }
+.cal-week-day.today { background: var(--gold-l); border: 1px solid var(--gold); }
+.cal-week-day-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.cal-week-day-name {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-5);
+}
+.cal-week-day-num {
+  width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 12px; font-weight: 500;
+}
+.cal-week-day.today .cal-week-day-num { background: var(--gold); color: white; }
+.cal-week-event {
+  font-size: 10px; padding: 4px 6px; background: white; border-radius: 4px;
+  margin-bottom: 4px; border-left: 2px solid var(--gold); color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Month View */
+.cal-month-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+}
+.cal-month-header {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-5); text-align: center; padding: 8px 0;
+}
+.cal-month-day {
+  aspect-ratio: 1; background: var(--cream); border-radius: 8px; padding: 6px;
+  cursor: pointer; transition: all .15s; position: relative;
+}
+.cal-month-day:hover { background: var(--cream-2); }
+.cal-month-day.today { background: var(--gold-l); }
+.cal-month-day.other-month { opacity: 0.4; }
+.cal-month-day-num {
+  font-size: 12px; font-weight: 500; color: var(--ink);
+}
+.cal-month-day.today .cal-month-day-num {
+  width: 22px; height: 22px; background: var(--gold); color: white;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.cal-month-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--gold);
+  position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+}
+/* Contacts Panel */
+.contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.contact-card {
+  background: linear-gradient(145deg, var(--cream), var(--cream-2));
+  border-radius: 14px; padding: 16px; cursor: pointer;
+  transition: all .2s; border: 1px solid transparent;
+}
+.contact-card:hover { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 8px 24px rgba(184,135,58,.12); }
+.contact-avatar {
+  width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
+  background: linear-gradient(135deg, var(--gold), var(--rose));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: white; font-weight: 500;
+  box-shadow: 0 4px 12px rgba(184,135,58,.25);
+}
+.contact-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.contact-name {
+  font-family: 'Playfair Display', serif; font-size: 15px; color: var(--ink);
+  text-align: center; margin-bottom: 4px;
+}
+.contact-role {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-4); text-align: center; margin-bottom: 10px;
+}
+.contact-info {
+  font-size: 11px; color: var(--ink-3); text-align: center; margin-bottom: 12px;
+}
+.contact-actions-row {
+  display: flex; gap: 8px; justify-content: center;
+}
+.contact-action-btn {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--cream-3);
+  background: white; cursor: pointer; font-size: 18px; transition: all .15s;
+}
+.contact-action-btn:hover { background: var(--gold); border-color: var(--gold); }
+/* News with images */
+.news-card {
+  display: flex; gap: 14px; padding: 14px; background: var(--cream);
+  border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: all .15s;
+}
+.news-card:hover { background: var(--cream-2); transform: translateX(3px); }
+.news-img {
+  width: 100px; height: 100px; border-radius: 10px; flex-shrink: 0;
+  background: var(--cream-3); object-fit: cover;
+}
+.news-content { flex: 1; }
+.news-source {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+}
+.news-title { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
+.news-summary { font-size: 11px; color: var(--ink-4); line-height: 1.5; }
+.news-time { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-5); margin-top: 6px; }
 .cal-event-time { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); min-width:38px; padding-top:1px; }
 .cal-event-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:2px; }
 .cal-event-sub  { font-size:11px; color:var(--ink-4); }
@@ -675,10 +824,25 @@ body.listening #listen-bars { opacity: 1; }
 
       <!-- CALENDAR -->
       <div class="dash-view" id="view-calendar">
-        <div class="cal-date-big" id="d-cal-day"></div>
-        <div class="cal-date-sub" id="d-cal-date"></div>
-        <div class="sec-label">Today's events</div>
-        <div class="cal-events" id="d-cal-events"></div>
+        <div class="cal-header">
+          <button class="cal-nav-btn" onclick="calNav(-1)">←</button>
+          <div class="cal-title-wrap">
+            <div class="cal-date-big" id="d-cal-day"></div>
+            <div class="cal-date-sub" id="d-cal-date"></div>
+          </div>
+          <button class="cal-nav-btn" onclick="calNav(1)">→</button>
+        </div>
+        <div class="cal-view-tabs">
+          <button class="cal-view-tab active" data-view="day" onclick="calView('day')">Day</button>
+          <button class="cal-view-tab" data-view="week" onclick="calView('week')">Week</button>
+          <button class="cal-view-tab" data-view="month" onclick="calView('month')">Month</button>
+        </div>
+        <div id="cal-day-view" class="cal-day-timeline"></div>
+        <div id="cal-week-view" class="cal-week-grid" style="display:none"></div>
+        <div id="cal-month-view" style="display:none">
+          <div class="cal-month-grid" id="cal-month-headers"></div>
+          <div class="cal-month-grid" id="cal-month-days"></div>
+        </div>
       </div>
 
       <!-- MUSIC -->
@@ -710,9 +874,9 @@ body.listening #listen-bars { opacity: 1; }
               </div>
             </div>
             <div style="display:flex;justify-content:center;align-items:center;gap:24px">
-              <button onclick="musicCmd('previous')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:40px;height:40px;font-size:16px;color:rgba(255,255,255,0.7);cursor:pointer">⏮</button>
-              <button id="d-music-playpause" onclick="musicCmd('playpause')" style="background:var(--gold);border:none;border-radius:50%;width:52px;height:52px;font-size:20px;color:white;cursor:pointer">▶</button>
-              <button onclick="musicCmd('skip')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:40px;height:40px;font-size:16px;color:rgba(255,255,255,0.7);cursor:pointer">⏭</button>
+              <button onclick="musicCmd('previous')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:48px;height:48px;font-size:20px;color:rgba(255,255,255,0.7);cursor:pointer">⏮</button>
+              <button id="d-music-playpause" onclick="musicCmd('playpause')" style="background:var(--gold);border:none;border-radius:50%;width:60px;height:60px;font-size:24px;color:white;cursor:pointer">▶</button>
+              <button onclick="musicCmd('skip')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:48px;height:48px;font-size:20px;color:rgba(255,255,255,0.7);cursor:pointer">⏭</button>
             </div>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-4);margin-bottom:10px">Recently Played</div>
@@ -775,7 +939,12 @@ body.listening #listen-bars { opacity: 1; }
 
       <!-- NEWS -->
       <div class="dash-view" id="view-news">
-        <div class="sec-label">Top stories</div>
+        <div style="display:flex;gap:6px;margin-bottom:16px">
+          <button class="news-cat-btn active" onclick="newsCategory('all')">All</button>
+          <button class="news-cat-btn" onclick="newsCategory('tech')">Tech</button>
+          <button class="news-cat-btn" onclick="newsCategory('business')">Business</button>
+          <button class="news-cat-btn" onclick="newsCategory('science')">Science</button>
+        </div>
         <div id="d-news-list"></div>
       </div>
 
@@ -789,8 +958,12 @@ body.listening #listen-bars { opacity: 1; }
 
       <!-- CONTACTS -->
       <div class="dash-view" id="view-contacts">
-        <div class="sec-label">Quick contacts</div>
-        <div id="d-contact-list"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="sec-label" style="margin:0">Contacts</div>
+          <button onclick="inject('Add a new contact')" style="padding:6px 12px;border-radius:6px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;cursor:pointer">+ Add</button>
+        </div>
+        <input id="contact-search" type="text" placeholder="Search contacts..." oninput="filterContacts()" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--cream-3);background:var(--cream);font-size:13px;margin-bottom:16px;outline:none">
+        <div class="contact-grid" id="d-contact-list"></div>
       </div>
 
       <!-- MEMORY -->
@@ -1013,7 +1186,9 @@ function handleWS(d) {
   else if (d.type === 'email_state')    { S.emails = d.emails || S.emails; renderEmailPanel(); }
   else if (d.type === 'home_state')     { S.home = d.devices || S.home; renderHomePanel(); }
   else if (d.type === 'init_key')   { window.__HZL_KEY = d.key; }
-  else if (d.type === 'panel_open') { navTap(d.panel); }
+  else if (d.type === 'contacts_state') { S.contacts = d.contacts || []; renderContactsPanel(); }
+  else if (d.type === 'news_state') { S.news = d.news || []; renderNewsPanel(); }
+  else if (d.type === 'panel_open') { switchTab(d.panel); }
 }
 
 /* ───────────────────────────────────────────
@@ -1176,18 +1351,117 @@ function renderWeatherPanel() {
   ).join('');
 }
 
+// Calendar state
+let calDate = new Date();
+let calMode = 'day';
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function calNav(dir) {
+  if (calMode === 'day') calDate.setDate(calDate.getDate() + dir);
+  else if (calMode === 'week') calDate.setDate(calDate.getDate() + (dir * 7));
+  else calDate.setMonth(calDate.getMonth() + dir);
+  renderCalendarPanel();
+}
+
+function calView(mode) {
+  calMode = mode;
+  document.querySelectorAll('.cal-view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === mode));
+  document.getElementById('cal-day-view').style.display = mode === 'day' ? 'block' : 'none';
+  document.getElementById('cal-week-view').style.display = mode === 'week' ? 'grid' : 'none';
+  document.getElementById('cal-month-view').style.display = mode === 'month' ? 'block' : 'none';
+  renderCalendarPanel();
+}
+
 function renderCalendarPanel() {
-  const n = new Date();
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('d-cal-day').textContent  = days[n.getDay()];
-  document.getElementById('d-cal-date').textContent = months[n.getMonth()] + ' ' + n.getDate() + ', ' + n.getFullYear();
-  document.getElementById('d-cal-events').innerHTML = S.events.map(e =>
-    `<div class="cal-event" style="border-left-color:${e.accent}" onclick="inject('Tell me about my ${e.name} meeting')">
-      <div class="cal-event-time">${e.time}</div>
-      <div><div class="cal-event-name">${e.name}</div><div class="cal-event-sub">${e.sub}</div></div>
-    </div>`
-  ).join('');
+  const today = new Date();
+  const isToday = calDate.toDateString() === today.toDateString();
+  
+  // Header
+  if (calMode === 'day') {
+    document.getElementById('d-cal-day').textContent = DAYS[calDate.getDay()];
+    document.getElementById('d-cal-date').textContent = MONTHS[calDate.getMonth()] + ' ' + calDate.getDate() + ', ' + calDate.getFullYear();
+  } else if (calMode === 'week') {
+    const start = new Date(calDate);
+    start.setDate(start.getDate() - start.getDay());
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    document.getElementById('d-cal-day').textContent = 'Week View';
+    document.getElementById('d-cal-date').textContent = MONTHS[start.getMonth()] + ' ' + start.getDate() + ' - ' + (end.getMonth() !== start.getMonth() ? MONTHS[end.getMonth()] + ' ' : '') + end.getDate();
+  } else {
+    document.getElementById('d-cal-day').textContent = MONTHS[calDate.getMonth()];
+    document.getElementById('d-cal-date').textContent = calDate.getFullYear();
+  }
+
+  // Day View
+  if (calMode === 'day') {
+    let html = '';
+    for (let h = 7; h <= 21; h++) {
+      const hourLabel = h > 12 ? (h-12) + ' PM' : (h === 12 ? '12 PM' : h + ' AM');
+      const hourEvents = S.events.filter(e => {
+        const match = e.time && e.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (!match) return false;
+        let eventHour = parseInt(match[1]);
+        if (match[3].toUpperCase() === 'PM' && eventHour !== 12) eventHour += 12;
+        if (match[3].toUpperCase() === 'AM' && eventHour === 12) eventHour = 0;
+        return eventHour === h;
+      });
+      html += '<div class="cal-hour-row"><div class="cal-hour-label">' + hourLabel + '</div><div class="cal-hour-content">';
+      hourEvents.forEach(e => {
+        html += '<div class="cal-event" onclick="inject(\'Tell me about ' + e.name + '\')"><div class="cal-event-time">' + e.time + '</div><div class="cal-event-name">' + e.name + '</div>' + (e.sub ? '<div class="cal-event-sub">' + e.sub + '</div>' : '') + '</div>';
+      });
+      html += '</div></div>';
+    }
+    document.getElementById('cal-day-view').innerHTML = html;
+  }
+
+  // Week View
+  if (calMode === 'week') {
+    const start = new Date(calDate);
+    start.setDate(start.getDate() - start.getDay());
+    let html = '';
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start);
+      day.setDate(day.getDate() + d);
+      const isT = day.toDateString() === today.toDateString();
+      const dayEvents = S.events.filter(e => e.time && e.time.includes(DAYS[d]));
+      html += '<div class="cal-week-day' + (isT ? ' today' : '') + '" onclick="calDate=new Date(' + day.getTime() + ');calView(\'day\')">';
+      html += '<div class="cal-week-day-header"><span class="cal-week-day-name">' + DAYS_SHORT[d] + '</span><span class="cal-week-day-num">' + day.getDate() + '</span></div>';
+      dayEvents.slice(0,3).forEach(e => {
+        html += '<div class="cal-week-event">' + e.name + '</div>';
+      });
+      if (dayEvents.length > 3) html += '<div style="font-size:9px;color:var(--ink-4)">+' + (dayEvents.length-3) + ' more</div>';
+      html += '</div>';
+    }
+    document.getElementById('cal-week-view').innerHTML = html;
+  }
+
+  // Month View
+  if (calMode === 'month') {
+    document.getElementById('cal-month-headers').innerHTML = DAYS_SHORT.map(d => '<div class="cal-month-header">' + d + '</div>').join('');
+    const first = new Date(calDate.getFullYear(), calDate.getMonth(), 1);
+    const last = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0);
+    const startDay = first.getDay();
+    let html = '';
+    // Previous month days
+    const prevLast = new Date(calDate.getFullYear(), calDate.getMonth(), 0);
+    for (let i = startDay - 1; i >= 0; i--) {
+      html += '<div class="cal-month-day other-month"><div class="cal-month-day-num">' + (prevLast.getDate() - i) + '</div></div>';
+    }
+    // Current month days
+    for (let d = 1; d <= last.getDate(); d++) {
+      const isT = d === today.getDate() && calDate.getMonth() === today.getMonth() && calDate.getFullYear() === today.getFullYear();
+      const hasEvent = S.events.some(e => e.time && e.time.includes(String(d)));
+      html += '<div class="cal-month-day' + (isT ? ' today' : '') + '" onclick="calDate.setDate(' + d + ');calView(\'day\')"><div class="cal-month-day-num">' + d + '</div>' + (hasEvent ? '<div class="cal-month-dot"></div>' : '') + '</div>';
+    }
+    // Next month days
+    const remaining = 42 - (startDay + last.getDate());
+    for (let i = 1; i <= remaining; i++) {
+      html += '<div class="cal-month-day other-month"><div class="cal-month-day-num">' + i + '</div></div>';
+    }
+    document.getElementById('cal-month-days').innerHTML = html;
+  }
 }
 
 function renderMusicPanel() {
@@ -1367,14 +1641,42 @@ function renderHomePanel() {
   ).join('');
 }
 
+function newsCategory(cat) {
+  document.querySelectorAll('.news-cat-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === cat));
+  // Map UI names to NewsAPI categories
+  const catMap = {all: 'general', tech: 'technology', business: 'business', science: 'science'};
+  const apiCat = catMap[cat] || 'general';
+  // Request news refresh via WebSocket
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) {
+    S.ws.send(JSON.stringify({type: 'news_category', category: apiCat}));
+  }
+}
+
+function readNews(title, url) {
+  if (url) {
+    inject('Read this news article for me: ' + url + ' - ' + title, 'news');
+  } else {
+    inject('Search for news about: ' + title, 'news');
+  }
+}
+
 function renderNewsPanel() {
-  document.getElementById('d-news-list').innerHTML = S.news.map(n =>
-    `<div class="news-item" onclick="inject('Tell me more about this story: ${n.hed}')">
-      <div class="news-src">${n.src}</div>
-      <div class="news-hed">${n.hed}</div>
-      <div class="news-prev">${n.prev}</div>
-    </div>`
-  ).join('');
+  const news = S.news || [];
+  if (!news.length) {
+    document.getElementById('d-news-list').innerHTML = '<div style="text-align:center;color:var(--ink-4);padding:40px">Loading news...</div>';
+    return;
+  }
+  document.getElementById('d-news-list').innerHTML = news.map(n => `
+    <div class="news-card" onclick="readNews('${(n.title||'').replace(/'/g, '')}', '${n.url||''}')">
+      ${n.img ? '<img class="news-img" src="'+n.img+'" onerror="this.style.display=\'none\'">' : '<div class="news-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--cream-2)">📰</div>'}
+      <div class="news-content">
+        <div class="news-source">${n.src || 'News'}</div>
+        <div class="news-title">${n.title || ''}</div>
+        <div class="news-summary">${n.summary || ''}</div>
+        <div class="news-time">${n.time || ''}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderMedsPanel() {
@@ -1404,20 +1706,36 @@ function renderMedsPanel() {
     : `<div style="font-size:12px;color:var(--ink-5);padding:8px 0">All prescriptions up to date.</div>`;
 }
 
+function filterContacts() {
+  const q = document.getElementById('contact-search').value.toLowerCase();
+  document.querySelectorAll('.contact-card').forEach(c => {
+    c.style.display = c.dataset.name.toLowerCase().includes(q) ? 'block' : 'none';
+  });
+}
+
 function renderContactsPanel() {
-  document.getElementById('d-contact-list').innerHTML = S.contacts.map(c =>
-    `<div class="contact-item">
-      <div class="contact-av">${c.av}</div>
-      <div>
-        <div class="contact-name">${c.name}</div>
-        <div class="contact-rel">${c.rel}</div>
+  const contacts = S.contacts || [];
+  if (!contacts.length) {
+    document.getElementById('d-contact-list').innerHTML = '<div style="text-align:center;color:var(--ink-4);padding:40px">No contacts yet</div>';
+    return;
+  }
+  // Color palette for avatars
+  const colors = ['var(--gold)', 'var(--rose)', 'var(--sage)', 'var(--sky)', '#9B7EBD', '#E57373', '#64B5F6'];
+  document.getElementById('d-contact-list').innerHTML = contacts.slice(0, 20).map((c, i) => {
+    const name = c.name || c.email?.split('@')[0] || 'Unknown';
+    const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const bgColor = colors[i % colors.length];
+    const role = c.note || (c.email?.includes('@') ? c.email.split('@')[1] : '');
+    return `<div class="contact-card" data-name="${name}" onclick="inject('Show me info for ${name}')">
+      <div class="contact-avatar" style="background:${bgColor}">${initials}</div>
+      <div class="contact-name">${name}</div>
+      <div class="contact-role">${role}</div>
+      <div class="contact-actions-row">
+        ${c.phone ? '<button class="contact-action-btn" onclick="event.stopPropagation();window.open(\'tel:'+c.phone+'\')">📞</button>' : ''}
+        <button class="contact-action-btn" onclick="event.stopPropagation();inject('Email ${name}')">✉️</button>
       </div>
-      <div class="contact-actions">
-        <button class="c-act-btn" onclick="inject('Call ${c.name}')" title="Call">📞</button>
-        <button class="c-act-btn" onclick="inject('Send a message to ${c.name}')" title="Message">✉️</button>
-      </div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderMemoryPanel() {

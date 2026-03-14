@@ -131,10 +131,31 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
 
     try:
         # brain.py handles model routing (sonnet vs haiku) and action tag parsing
-        # Check if message is asking to read an email — pre-fetch body
+        # Check if message is asking to read a news article — use Tavily
         import re as _re2
-        email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
-        if email_read:
+        news_read = _re2.search(r'Read this news article.*?(https?://[^\s]+)', message, _re2.IGNORECASE)
+        if news_read:
+            url = news_read.group(1)
+            log.info(f"Fetching news article via Tavily: {url}")
+            try:
+                from search import web_search
+                # Use Tavily to search for the article content
+                article_content = await asyncio.to_thread(web_search, f"site:{url} full article")
+                if article_content and "error" not in article_content.lower():
+                    augmented = f"{message}\n\n[Article content from Tavily]:\n{article_content}"
+                    response_text = await asyncio.to_thread(get_response, augmented, hint)
+                else:
+                    # Fallback: search for the topic
+                    topic = message.split(' - ')[-1] if ' - ' in message else message
+                    search_result = await asyncio.to_thread(web_search, topic[:100])
+                    augmented = f"{message}\n\n[Related info from web search]:\n{search_result}"
+                    response_text = await asyncio.to_thread(get_response, augmented, hint)
+            except Exception as e:
+                log.warning(f"Tavily fetch failed: {e}")
+                response_text = await asyncio.to_thread(get_response, message, hint)
+        # Check if message is asking to read an email — pre-fetch body
+        elif _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE):
+            email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
             from gmail import get_email_body
             sender = email_read.group(1).strip()
             email_body = await asyncio.to_thread(get_email_body, sender)
@@ -205,6 +226,7 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
     except Exception as e:
         log.error(f"Brain error: {e}")
         await broadcast({"type": "response", "text": "Something went wrong. Please try again."})
+    finally:
         _BUSY = False
         await broadcast({"type": "idle"})
 
@@ -290,6 +312,27 @@ async def push_on_connect(ws):
     except Exception as e:
         log.warning(f"Email push failed: {e}")
 
+    # ── Contacts ──
+    try:
+        from contacts import get_all as get_contacts
+        contacts = await asyncio.to_thread(get_contacts)
+        if contacts:
+            contact_list = [{"name": c.get("name",""), "email": c.get("email",""), "phone": c.get("phone",""), "note": c.get("note","")} for c in contacts]
+            await ws.send(json.dumps({"type": "contacts_state", "contacts": contact_list}))
+            log.info(f"Contacts pushed: {len(contact_list)}")
+    except Exception as e:
+        log.warning(f"Contacts push failed: {e}")
+
+    # ── News ──
+    try:
+        from news import get_headlines_structured
+        news = await asyncio.to_thread(get_headlines_structured, "general", 5)
+        if news:
+            await ws.send(json.dumps({"type": "news_state", "news": news}))
+            log.info(f"News pushed: {len(news)} articles")
+    except Exception as e:
+        log.warning(f"News push failed: {e}")
+
     # ── Spotify ──
     if SPOTIFY_AVAILABLE:
         try:
@@ -340,6 +383,17 @@ async def handle_connection(ws: ServerConnection):
                 await broadcast({"type": "idle"})
                 if VOICE_AVAILABLE:
                     asyncio.create_task(asyncio.to_thread(stop_listening))
+
+            elif msg_type == "news_category":
+                category = data.get("category", "general")
+                log.info(f"News category request: {category}")
+                try:
+                    from news import get_headlines_structured
+                    news = await asyncio.to_thread(get_headlines_structured, category, 5)
+                    if news:
+                        await broadcast({"type": "news_state", "news": news})
+                except Exception as e:
+                    log.warning(f"News category fetch failed: {e}")
 
             else:
                 log.warning(f"Unknown message type: {msg_type!r}")

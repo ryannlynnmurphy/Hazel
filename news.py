@@ -17,6 +17,35 @@ API_KEY  = os.getenv("NEWS_API_KEY")
 BASE_URL = "https://newsapi.org/v2"
 TIMEOUT  = 10
 
+# Prioritize open/free sources, exclude heavy paywalls
+PREFERRED_SOURCES = {
+    # Open/Free & Generally Reliable
+    "AP News", "Reuters", "NPR", "PBS", "BBC News", "The Guardian",
+    "Al Jazeera English", "ABC News", "CBS News", "NBC News", "CNN",
+    "Associated Press", "The Hill", "Politico", "Axios", "The Verge",
+    "Ars Technica", "TechCrunch", "Wired", "Engadget",
+}
+
+PAYWALLED_SOURCES = {
+    "The Wall Street Journal", "Financial Times", "The New York Times",
+    "Washington Post", "Bloomberg", "The Athletic", "The Information",
+}
+
+def filter_and_rank_articles(articles):
+    """Filter out paywalled sources, prioritize open ones."""
+    open_articles = []
+    other_articles = []
+    for a in articles:
+        source = a.get("source", {}).get("name", "")
+        if source in PAYWALLED_SOURCES:
+            continue  # Skip paywalled
+        if source in PREFERRED_SOURCES:
+            open_articles.append(a)
+        else:
+            other_articles.append(a)
+    # Return preferred first, then others
+    return open_articles + other_articles
+
 VALID_CATEGORIES = {
     "general", "technology", "business",
     "science", "health", "entertainment", "sports"
@@ -104,6 +133,31 @@ def get_morning_news_brief(topics: list = None, count_per_topic: int = 2) -> str
         sections.append(result)
     return "\n\n".join(sections)
 
+
+
+
+def get_headlines_structured(category: str = "general", count: int = 5) -> list:
+    """Return structured news data with images for UI, prioritizing open sources."""
+    category = category.lower().strip()
+    if category not in VALID_CATEGORIES:
+        category = "general"
+    log.info(f"get_headlines_structured() — category='{category}'")
+    try:
+        # Fetch more than needed so we can filter
+        data = _get("top-headlines", {"country": "us", "category": category, "pageSize": count * 3})
+        articles = filter_and_rank_articles(data.get("articles", []))
+        return [{
+            "title": a.get("title", ""),
+            "src": a.get("source", {}).get("name", ""),
+            "img": a.get("urlToImage", ""),
+            "url": a.get("url", ""),
+            "summary": (a.get("description") or "")[:120],
+            "time": a.get("publishedAt", "")[:10] if a.get("publishedAt") else "",
+            "open": a.get("source", {}).get("name", "") in PREFERRED_SOURCES
+        } for a in articles[:count]]
+    except Exception as e:
+        log.error(f"get_headlines_structured() failed — {e}")
+        return []
 
 # ── Test CLI ──────────────────────────────────────────────────────────────────
 if __name__ == "__main__":

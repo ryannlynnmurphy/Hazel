@@ -69,7 +69,7 @@ def detect_mic() -> str:
     return "plughw:1,0"
 
 # ── TEXT CLEANING ──────────────────────────────────────────────────────────
-_ACTION_TAG = re.compile(r'\[(?:ACTION|REMINDER|GMAIL|GCAL):[^\]]*\]', re.IGNORECASE)
+_ACTION_TAG = re.compile(r'\[[A-Z_]+:[^\]]*\]', re.IGNORECASE)
 _MARKDOWN   = re.compile(r'[*_`#>~]')
 _MULTI_SP   = re.compile(r' {2,}')
 
