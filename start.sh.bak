@@ -1,0 +1,19 @@
+#!/bin/bash
+cd ~/jarvis
+source ~/.bashrc
+set -a; source .env; set +a
+pkill -f "main.py"
+ sudo fuser -k 8765/tcp 2>/dev/null
+ sudo fuser -k 8766/tcp 2>/dev/null 2>/dev/null
+pkill -f "hazel-refined" 2>/dev/null
+sleep 1
+DISPLAY=:0 chromium \
+  --user-data-dir=/tmp/hazel-profile \
+  --app=file:///home/ryannlynnmurphy/jarvis/ui/hazel-dynamic.html \
+  --start-fullscreen \
+  --no-first-run \
+  --disable-session-crashed-bubble \
+  --disable-infobars \
+  > /dev/null 2>&1 &
+sleep 2
+python3 main.py
