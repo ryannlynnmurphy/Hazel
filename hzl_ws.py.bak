@@ -131,31 +131,10 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
 
     try:
         # brain.py handles model routing (sonnet vs haiku) and action tag parsing
-        # Check if message is asking to read a news article — use Tavily
-        import re as _re2
-        news_read = _re2.search(r'Read this news article.*?(https?://[^\s]+)', message, _re2.IGNORECASE)
-        if news_read:
-            url = news_read.group(1)
-            log.info(f"Fetching news article via Tavily: {url}")
-            try:
-                from search import web_search
-                # Use Tavily to search for the article content
-                article_content = await asyncio.to_thread(web_search, f"site:{url} full article")
-                if article_content and "error" not in article_content.lower():
-                    augmented = f"{message}\n\n[Article content from Tavily]:\n{article_content}"
-                    response_text = await asyncio.to_thread(get_response, augmented, hint)
-                else:
-                    # Fallback: search for the topic
-                    topic = message.split(' - ')[-1] if ' - ' in message else message
-                    search_result = await asyncio.to_thread(web_search, topic[:100])
-                    augmented = f"{message}\n\n[Related info from web search]:\n{search_result}"
-                    response_text = await asyncio.to_thread(get_response, augmented, hint)
-            except Exception as e:
-                log.warning(f"Tavily fetch failed: {e}")
-                response_text = await asyncio.to_thread(get_response, message, hint)
         # Check if message is asking to read an email — pre-fetch body
-        elif _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE):
-            email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
+        import re as _re2
+        email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
+        if email_read:
             from gmail import get_email_body
             sender = email_read.group(1).strip()
             email_body = await asyncio.to_thread(get_email_body, sender)
@@ -165,69 +144,6 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
             response_text = await asyncio.to_thread(get_response, message, hint)
         await broadcast({"type": "speaking"})
         await broadcast({"type": "response", "text": response_text})
-        
-        # Refresh meds UI if medication-related conversation
-        med_keywords = ['medication', 'medicine', 'pill', 'take', 'took', 'taking', 'prescription', 'dose', 'vitamin', 'supplement', 'penicillin', 'antibiotic', 'probiotic', 'melatonin']
-        if any(kw in message.lower() for kw in med_keywords):
-            # Try to extract and add medication from user message
-            try:
-                import re
-                from health import add_medication, log_medication_taken, get_medications, get_medication_log_today
-                msg_lower = message.lower()
-                
-                # Pattern: "i take X" or "i'm taking X"
-                add_match = re.search(r"i(?:'m)?\s+(?:take|taking)\s+(.+?)(?:\s+(?:twice|once|three times|every|at|in the|daily|weekly)|\s*$)", msg_lower)
-                if add_match:
-                    med_name = add_match.group(1).strip().title()
-                    # Extract frequency
-                    freq = "daily"
-                    times = ["09:00"]
-                    if "twice" in msg_lower:
-                        freq = "twice daily"
-                        times = ["09:00", "21:00"]
-                    elif "night" in msg_lower or "evening" in msg_lower or "bedtime" in msg_lower:
-                        times = ["21:00"]
-                    elif "morning" in msg_lower:
-                        times = ["09:00"]
-                    
-                    # Check if already exists
-                    existing = [m["name"].lower() for m in get_medications()]
-                    if med_name.lower() not in existing:
-                        add_medication(med_name, None, freq, times)
-                        log.info(f"Auto-added medication: {med_name}")
-                
-                # Pattern: "i took X" or "just took X"
-                took_match = re.search(r"(?:i\s+)?(?:just\s+)?took\s+(?:my\s+)?(.+?)(?:\s|$)", msg_lower)
-                if took_match:
-                    med_name = took_match.group(1).strip()
-                    log_medication_taken(med_name)
-                    log.info(f"Logged medication taken: {med_name}")
-            except Exception as e:
-                log.warning(f"Med auto-parse failed: {e}")
-            
-            try:
-                meds = get_medications()
-                taken_today = {m["name"] for m in get_medication_log_today()}
-                med_icons = {"vitamin": "💊", "omega": "🐟", "iron": "🩸", "probiotic": "🦠", "default": "💊"}
-                med_list = []
-                for m in meds:
-                    icon = "💊"
-                    for k, v in med_icons.items():
-                        if k in m["name"].lower():
-                            icon = v
-                            break
-                    med_list.append({
-                        "name": m["name"],
-                        "dose": m["dose"] or "",
-                        "time": m["times"][0] if m["times"] else "",
-                        "taken": m["name"] in taken_today,
-                        "icon": icon,
-                        "refill": False
-                    })
-                await broadcast({"type": "meds_state", "medications": med_list})
-                log.info("Medications UI refreshed after health action")
-            except Exception as e:
-                log.warning(f"Meds refresh failed: {e}")
         if VOICE_AVAILABLE:
             import re as _re2
             clean = _re2.sub(r'\[.*?\]', '', response_text).strip()
@@ -289,7 +205,6 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
     except Exception as e:
         log.error(f"Brain error: {e}")
         await broadcast({"type": "response", "text": "Something went wrong. Please try again."})
-    finally:
         _BUSY = False
         await broadcast({"type": "idle"})
 
@@ -375,53 +290,6 @@ async def push_on_connect(ws):
     except Exception as e:
         log.warning(f"Email push failed: {e}")
 
-    # ── Contacts ──
-    try:
-        from contacts import get_all as get_contacts
-        contacts = await asyncio.to_thread(get_contacts)
-        if contacts:
-            contact_list = [{"name": c.get("name",""), "email": c.get("email",""), "phone": c.get("phone",""), "note": c.get("note","")} for c in contacts]
-            await ws.send(json.dumps({"type": "contacts_state", "contacts": contact_list}))
-            log.info(f"Contacts pushed: {len(contact_list)}")
-    except Exception as e:
-        log.warning(f"Contacts push failed: {e}")
-
-    # ── Medications ──
-    try:
-        from health import get_medications, get_medication_log_today
-        meds = get_medications()
-        taken_today = {m["name"] for m in get_medication_log_today()}
-        med_icons = {"vitamin": "💊", "omega": "🐟", "iron": "🩸", "probiotic": "🦠", "default": "💊"}
-        med_list = []
-        for m in meds:
-            icon = "💊"
-            for k, v in med_icons.items():
-                if k in m["name"].lower():
-                    icon = v
-                    break
-            med_list.append({
-                "name": m["name"],
-                "dose": m["dose"] or "",
-                "time": m["times"][0] if m["times"] else "",
-                "taken": m["name"] in taken_today,
-                "icon": icon,
-                "refill": False
-            })
-        await ws.send(json.dumps({"type": "meds_state", "medications": med_list}))
-        log.info(f"Medications pushed: {len(med_list)}")
-    except Exception as e:
-        log.warning(f"Medications push failed: {e}")
-
-    # ── News ──
-    try:
-        from news import get_headlines_structured
-        news = await asyncio.to_thread(get_headlines_structured, "general", 5)
-        if news:
-            await ws.send(json.dumps({"type": "news_state", "news": news}))
-            log.info(f"News pushed: {len(news)} articles")
-    except Exception as e:
-        log.warning(f"News push failed: {e}")
-
     # ── Spotify ──
     if SPOTIFY_AVAILABLE:
         try:
@@ -472,17 +340,6 @@ async def handle_connection(ws: ServerConnection):
                 await broadcast({"type": "idle"})
                 if VOICE_AVAILABLE:
                     asyncio.create_task(asyncio.to_thread(stop_listening))
-
-            elif msg_type == "news_category":
-                category = data.get("category", "general")
-                log.info(f"News category request: {category}")
-                try:
-                    from news import get_headlines_structured
-                    news = await asyncio.to_thread(get_headlines_structured, category, 5)
-                    if news:
-                        await broadcast({"type": "news_state", "news": news})
-                except Exception as e:
-                    log.warning(f"News category fetch failed: {e}")
 
             else:
                 log.warning(f"Unknown message type: {msg_type!r}")

@@ -1,11 +1,7 @@
 .env
-.spotify_cache
-*.bak
-token.json
-credentials.json
-__pycache__/
 *.pyc
-logs/
-/ui/panels/
-memory.db
-*.db
+__pycache__/
+*.log
+.DS_Store
+node_modules/
+venv/
