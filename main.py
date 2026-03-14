@@ -48,7 +48,9 @@ def check_reminders():
         trigger_now("reminder fired")
 
 def process_response(reply):
-    clean_text, actions = parse_actions(reply)
+    actions = parse_actions(reply)
+    import re
+    clean_text = re.sub(r'\[[A-Z_]+:[^\]]*\]', '', reply, flags=re.IGNORECASE).strip()
     global SPEAKING
     if clean_text:
         broadcast({"state": "speaking", "transcript": clean_text})

@@ -135,8 +135,6 @@ def _parse_actions(text: str) -> list[tuple[str, any]]:
         cmd = raw.lower()
         if cmd == "check":
             actions.append(("task_check", None))
-        if re.search(r"\[WEATHER[\s:]", response, re.I):
-            actions.append(("weather_check", None))
         elif cmd.startswith("add "):
             parts   = raw[4:].strip().split("|", 1)
             content = parts[0].strip()
@@ -147,6 +145,9 @@ def _parse_actions(text: str) -> list[tuple[str, any]]:
         else:
             log.warning(f"Unknown TASK tag: '{raw}'")
 
+    # ── Weather ───────────────────────────────────────────────────────────────
+    if re.search(r"\[WEATHER[:\s]\s*check\]", text, re.IGNORECASE):
+        actions.append(("weather_check", None))
     # ── News ──────────────────────────────────────────────────────────────────
     for m in re.finditer(r'\[NEWS:\s*(.+?)\]', text, re.IGNORECASE):
         raw  = m.group(1).strip()
