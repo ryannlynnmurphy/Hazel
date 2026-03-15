@@ -676,6 +676,234 @@ body.listening #listen-bars { opacity: 1; }
 @media (max-width: 820px) {
   :root { --chat-w: 340px; --panel-w: 0; }
 }
+/* ─── SUGGESTIONS PANEL ─── */
+.sug-card {
+  background: var(--cream-2);
+  border: 1px solid var(--cream-3);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.sug-card:hover {
+  background: var(--gold-l);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(184,135,58,.12);
+}
+.sug-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  opacity: .7;
+}
+.sug-content {
+  flex: 1;
+  min-width: 0;
+}
+.sug-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.sug-hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.sug-category {
+  display: inline-block;
+  background: var(--sage-l);
+  color: var(--sage);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+#task-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(184,135,58,.2);
+  border-radius: var(--r);
+  background: var(--cream-2);
+  font-size: 14px;
+  font-family: 'Figtree', sans-serif;
+  color: var(--ink);
+  outline: none;
+  transition: all .2s;
+}
+#task-input:focus {
+  background: var(--cream);
+  border-color: var(--gold);
+}
+#task-input::placeholder {
+  color: var(--ink-4);
+  font-style: italic;
+}
+.task-item {
+  background: linear-gradient(135deg, var(--cream-2) 0%, var(--cream) 100%);
+  border: 1px solid rgba(20,18,16,.08);
+  border-radius: var(--r);
+  padding: 16px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  transition: all .25s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.task-item:hover {
+  background: linear-gradient(135deg, var(--cream) 0%, var(--gold-l) 100%);
+  border-color: rgba(184,135,58,.25);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(184,135,58,.12);
+}
+.task-item.done {
+  opacity: 0.6;
+  background: var(--cream-3);
+}
+.task-item.done:hover {
+  opacity: 0.75;
+}
+.task-item.done .task-text {
+  text-decoration: line-through;
+  color: var(--ink-4);
+}
+.task-check {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+.task-check:hover {
+  background: var(--gold-l);
+  transform: scale(1.08);
+}
+.task-check.checked {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.task-check.checked::after {
+  content: '✓';
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+}
+.task-text {
+  flex: 1;
+  font-size: 14.5px;
+  font-family: 'Figtree', sans-serif;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.task-delete {
+  background: none;
+  border: none;
+  color: var(--ink-4);
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all .2s;
+  padding: 0 6px;
+  line-height: 1;
+}
+.task-item:hover .task-delete {
+  opacity: 1;
+}
+.task-delete:hover {
+  color: var(--rose);
+  transform: scale(1.15);
+
+}
+
+/* ─── APPS PANEL ─── */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.app-card {
+  background: linear-gradient(135deg, #FFFEF8 0%, var(--cream) 100%);
+  border: 2px solid rgba(184,135,58,.25);
+  border-radius: 12px;
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.app-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(184,135,58,.08) 0%, rgba(184,135,58,.15) 100%);
+  opacity: 0;
+  transition: opacity .3s;
+}
+
+.app-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(184,135,58,.25);
+  border-color: rgba(184,135,58,.5);
+}
+
+.app-card:hover::before {
+  opacity: 1;
+}
+
+.app-card:active {
+  transform: translateY(-4px);
+}
+
+.app-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.1));
+}
+
+.app-name {
+  font-family: 'Figtree', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  letter-spacing: .3px;
+}
+
+.app-desc {
+  font-family: 'Figtree', sans-serif;
+  font-size: 11.5px;
+  color: rgba(48,39,28,.55);
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  letter-spacing: .2px;
+}
 </style>
 </head>
 <body>
@@ -753,6 +981,9 @@ body.listening #listen-bars { opacity: 1; }
       <button class="nav-pill" onclick="navTap('medications')"><span class="dot"></span>meds</button>
       <button class="nav-pill" onclick="navTap('contacts')"><span class="dot"></span>contacts</button>
       <button class="nav-pill" onclick="navTap('memory')"><span class="dot"></span>memory</button>
+      <button class="nav-pill" onclick="navTap('suggestions')"><span class="dot"></span>suggestions</button>
+      <button class="nav-pill" onclick="navTap('tasks')"><span class="dot"></span>tasks</button>
+      <button class="nav-pill" onclick="navTap('apps')"><span class="dot"></span>apps</button>
     </div>
 
     <!-- Chat feed -->
@@ -797,6 +1028,9 @@ body.listening #listen-bars { opacity: 1; }
         <div class="dash-tab" data-tab="medications" onclick="switchTab('medications')">Meds</div>
         <div class="dash-tab" data-tab="contacts" onclick="switchTab('contacts')">Contacts</div>
         <div class="dash-tab" data-tab="memory" onclick="switchTab('memory')">Memory</div>
+        <div class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</div>
+        <div class="dash-tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</div>
+        <div class="dash-tab" data-tab="apps" onclick="switchTab('apps')">Apps</div>
       </div>
       <div id="dash-clock"></div>
     </div>
@@ -972,6 +1206,37 @@ body.listening #listen-bars { opacity: 1; }
         <div id="d-memory-list"></div>
       </div>
 
+      <!-- SUGGESTIONS -->
+      <div class="dash-view" id="view-suggestions">
+        <div class="sec-label">Try asking Hazel...</div>
+        <div id="d-suggestions-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="dash-view" id="view-tasks">
+        <div class="sec-label">Your Tasks</div>
+        <div style="margin-bottom:12px">
+          <input type="text" id="task-input" placeholder="Add a new task...">
+        </div>
+        <div id="d-task-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="dash-view" id="view-apps">
+        <div class="sec-label">HZL Applications</div>
+        <div class="app-grid">
+          <div class="app-card" onclick="window.open('http://localhost:8082/arcade.html', '_blank')">
+            <div class="app-icon">🎮</div>
+            <div class="app-name">HZL Arcade</div>
+            <div class="app-desc">Retro games • Garrison, Rally, Flyover & more</div>
+          </div>
+          <div class="app-card" onclick="window.open('http://localhost:8082/HZL_Academy.html', '_blank')">
+            <div class="app-icon">🎓</div>
+            <div class="app-name">HZL Academy</div>
+            <div class="app-desc">AI-powered learning • Learn anything you want</div>
+          </div>
+        </div>
+      </div>
+      </div>
+
     </div><!-- /dash-body -->
   </div><!-- /dash-col -->
 
@@ -1048,6 +1313,7 @@ const S = {
     { cat:'project',     val:'Working on HZL AI — luxury home assistant' },
     { cat:'schedule',    val:'Usually wakes around 7 AM on weekdays' },
   ],
+  tasks: [],
 };
 
 /* ───────────────────────────────────────────
@@ -1133,6 +1399,8 @@ const NAV_QUESTIONS = {
   medications: "What medications do I need to take today and have I taken them?",
   contacts:    "Show me my contacts.",
   memory:      "What do you remember about me?",
+  apps:        "Show me the HZL applications I can use.",
+  tasks:       "What's on my task list?",
 };
 
 function navTap(tab) {
@@ -1150,6 +1418,7 @@ function switchTab(tab) {
     const o = p.getAttribute('onclick') || '';
     p.classList.toggle('active', o.includes(`'${tab}'`));
   });
+  if (tab !== "suggestions") renderSuggestionsPanel();
 }
 
 /* ───────────────────────────────────────────
@@ -1189,6 +1458,7 @@ function handleWS(d) {
   else if (d.type === 'contacts_state') { S.contacts = d.contacts || []; renderContactsPanel(); }
   else if (d.type === 'news_state') { S.news = d.news || []; renderNewsPanel(); }
       if (d.type === 'meds_state') { S.medications = d.medications || []; renderMedsPanel(); }
+  else if (d.type === 'task_state') { S.tasks = d.tasks || []; renderTasksPanel(); }
   else if (d.type === 'panel_open') { switchTab(d.panel); }
 }
 
@@ -1744,6 +2014,160 @@ function renderMemoryPanel() {
     `<div class="mem-item"><div class="mem-cat">${m.cat}</div><div class="mem-val">${m.val}</div></div>`
   ).join('');
 }
+function renderSuggestionsPanel() {
+  const hour = new Date().getHours();
+  const panel = S.activeTab || 'weather';
+  
+  // Time-of-day suggestions (expanded)
+  let timeSugs = [];
+  if (hour >= 5 && hour < 9) {
+    timeSugs = [
+      {icon: '☀️', text: 'What\'s on my calendar today?', hint: 'morning briefing', cat: 'Morning'},
+      {icon: '📰', text: 'Show me today\'s top news', hint: 'daily news', cat: 'Morning'},
+      {icon: '🌤️', text: 'What\'s the weather forecast?', hint: 'weather check', cat: 'Morning'},
+      {icon: '✉️', text: 'Any urgent emails overnight?', hint: 'email triage', cat: 'Morning'},
+      {icon: '🎯', text: 'What should I focus on today?', hint: 'priority planning', cat: 'Morning'}
+    ];
+  } else if (hour >= 9 && hour < 12) {
+    timeSugs = [
+      {icon: '📅', text: 'What\'s my next meeting?', hint: 'calendar lookup', cat: 'Work'},
+      {icon: '✉️', text: 'Summarize my unread emails', hint: 'email check', cat: 'Work'},
+      {icon: '☕', text: 'Set a reminder for 2pm', hint: 'reminder', cat: 'Work'},
+      {icon: '📝', text: 'What\'s on my task list?', hint: 'todo review', cat: 'Work'},
+      {icon: '🎵', text: 'Play focus music', hint: 'productivity playlist', cat: 'Work'}
+    ];
+  } else if (hour >= 12 && hour < 17) {
+    timeSugs = [
+      {icon: '🍽️', text: 'What\'s a good lunch spot nearby?', hint: 'lunch recommendation', cat: 'Afternoon'},
+      {icon: '📊', text: 'Recap this morning\'s meetings', hint: 'meeting summary', cat: 'Afternoon'},
+      {icon: '✅', text: 'What have I completed today?', hint: 'progress check', cat: 'Afternoon'},
+      {icon: '📧', text: 'Draft a follow-up email', hint: 'email composition', cat: 'Afternoon'},
+      {icon: '🔋', text: 'How much time until my next call?', hint: 'schedule buffer', cat: 'Afternoon'}
+    ];
+  } else if (hour >= 17 && hour < 22) {
+    timeSugs = [
+      {icon: '🎵', text: 'Play some jazz', hint: 'music control', cat: 'Evening'},
+      {icon: '💡', text: 'Turn on the living room lights', hint: 'smart home', cat: 'Evening'},
+      {icon: '📖', text: 'Summarize what happened today: review my calendar events, check emails I sent or received, and recap what I worked on', hint: 'daily recap', cat: 'Evening'},
+      {icon: '📺', text: 'What\'s on tonight?', hint: 'entertainment', cat: 'Evening'},
+      {icon: '🍷', text: 'Wine pairing for dinner', hint: 'recommendations', cat: 'Evening'}
+    ];
+  } else {
+    timeSugs = [
+      {icon: '🌙', text: 'Set an alarm for 7am', hint: 'alarm', cat: 'Night'},
+      {icon: '🎶', text: 'Play something calming', hint: 'music for sleep', cat: 'Night'},
+      {icon: '💤', text: 'Good night routine', hint: 'bedtime scene', cat: 'Night'},
+      {icon: '📚', text: 'Recommend a bedtime read', hint: 'book suggestion', cat: 'Night'},
+      {icon: '🔒', text: 'Lock all doors and turn off lights', hint: 'security scene', cat: 'Night'}
+    ];
+  }
+  
+  // Panel-specific suggestions (expanded)
+  let panelSugs = [];
+  if (panel === 'calendar') {
+    panelSugs = [
+      {icon: '➕', text: 'Add a meeting tomorrow at 2pm', hint: 'create event', cat: 'Calendar'},
+      {icon: '🗓️', text: 'What does my week look like?', hint: 'week view', cat: 'Calendar'},
+      {icon: '⏰', text: 'When is my next appointment?', hint: 'upcoming events', cat: 'Calendar'},
+      {icon: '🔍', text: 'Find time for a 30-minute meeting this week', hint: 'availability search', cat: 'Calendar'},
+      {icon: '🚫', text: 'Cancel my 3pm meeting', hint: 'event management', cat: 'Calendar'}
+    ];
+  } else if (panel === 'music') {
+    panelSugs = [
+      {icon: '🎵', text: 'Play Fleet Foxes', hint: 'artist search', cat: 'Music'},
+      {icon: '🎧', text: 'What\'s in my queue?', hint: 'queue view', cat: 'Music'},
+      {icon: '⏭️', text: 'Skip to the next track', hint: 'playback control', cat: 'Music'},
+      {icon: '💿', text: 'Play my liked songs', hint: 'library access', cat: 'Music'},
+      {icon: '🎼', text: 'Create a playlist for focus', hint: 'playlist generation', cat: 'Music'}
+    ];
+  } else if (panel === 'email') {
+    panelSugs = [
+      {icon: '✍️', text: 'Draft an email to my accountant', hint: 'compose with AI', cat: 'Email'},
+      {icon: '📬', text: 'Show me unread emails', hint: 'inbox filter', cat: 'Email'},
+      {icon: '🔍', text: 'Search my emails for "invoice"', hint: 'email search', cat: 'Email'},
+      {icon: '⭐', text: 'What are my starred emails?', hint: 'important messages', cat: 'Email'},
+      {icon: '📤', text: 'Send a quick reply to the last email', hint: 'fast response', cat: 'Email'}
+    ];
+  } else if (panel === 'home') {
+    panelSugs = [
+      {icon: '💡', text: 'Turn off all lights', hint: 'scene control', cat: 'Home'},
+      {icon: '🎬', text: 'Set movie mode', hint: 'scene trigger', cat: 'Home'},
+      {icon: '🌡️', text: 'Set thermostat to 72', hint: 'climate control', cat: 'Home'},
+      {icon: '🔐', text: 'Lock the front door', hint: 'security', cat: 'Home'},
+      {icon: '☀️', text: 'Open the bedroom blinds', hint: 'shade control', cat: 'Home'}
+    ];
+  } else if (panel === 'news') {
+    panelSugs = [
+      {icon: '📰', text: 'What\'s the top story today?', hint: 'headline news', cat: 'News'},
+      {icon: '💼', text: 'Show me business news', hint: 'category filter', cat: 'News'},
+      {icon: '🔬', text: 'Any new science breakthroughs?', hint: 'science news', cat: 'News'},
+      {icon: '🌍', text: 'What\'s happening internationally?', hint: 'world news', cat: 'News'},
+      {icon: '📊', text: 'Tech industry news', hint: 'tech filter', cat: 'News'}
+    ];
+  } else if (panel === 'weather') {
+    panelSugs = [
+      {icon: '🌤️', text: 'What\'s the weather today?', hint: 'current conditions', cat: 'Weather'},
+      {icon: '🌧️', text: 'Will it rain this week?', hint: 'forecast lookup', cat: 'Weather'},
+      {icon: '🌡️', text: 'What\'s the high today?', hint: 'temperature check', cat: 'Weather'},
+      {icon: '☂️', text: 'Should I bring an umbrella?', hint: 'rain probability', cat: 'Weather'},
+      {icon: '🌅', text: 'When\'s sunset tonight?', hint: 'sun times', cat: 'Weather'}
+    ];
+  }
+  
+  // Combine and pick 6 suggestions (increased from 5)
+  const allSugs = [...panelSugs, ...timeSugs];
+  const picks = allSugs.slice(0, 6);
+  
+  // Render
+  const html = picks.map(s => `
+    <div class="sug-card" onclick="inject('${s.text.replace(/'/g, "\\'")}', 'suggestion')">
+      <span class="sug-icon">${s.icon}</span>
+      <div class="sug-content">
+        <div class="sug-category">${s.cat}</div>
+        <div class="sug-text">${s.text}</div>
+        <div class="sug-hint">${s.hint}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  document.getElementById('d-suggestions-list').innerHTML = html;
+}
+function renderTasksPanel() {
+  const list = document.getElementById('d-task-list');
+  if (!S.tasks || S.tasks.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--ink-4);padding:40px;font-size:13px">No tasks yet. Add one above or say "Add a task: ..."</div>';
+    return;
+  }
+  
+  list.innerHTML = S.tasks.map((t, i) => `
+    <div class="task-item ${t.done ? 'done' : ''}">
+      <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${i})"></div>
+      <div class="task-text">${t.text}</div>
+      <button class="task-delete" onclick="deleteTask(${i})" title="Delete task">×</button>
+    </div>
+  `).join('');
+}
+
+function addTask(text) {
+  if (!text || !text.trim()) return;
+  S.tasks.push({ text: text.trim(), done: false, created: new Date().toISOString() });
+  renderTasksPanel();
+  document.getElementById('task-input').value = '';
+}
+
+function toggleTask(idx) {
+  if (S.tasks[idx]) {
+    S.tasks[idx].done = !S.tasks[idx].done;
+    renderTasksPanel();
+  }
+}
+
+function deleteTask(idx) {
+  S.tasks.splice(idx, 1);
+  renderTasksPanel();
+}
+
+// Enter key to add task
 
 /* ───────────────────────────────────────────
    INIT
@@ -1757,6 +2181,17 @@ renderNewsPanel();
 renderMedsPanel();
 renderContactsPanel();
 renderMemoryPanel();
+renderSuggestionsPanel();
+renderTasksPanel();
+// Setup task input listener
+setTimeout(() => {
+  const input = document.getElementById('task-input');
+  if (input) {
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') addTask(input.value);
+    });
+  }
+}, 100);
 setFace('idle');
 connectWS();
 </script>
