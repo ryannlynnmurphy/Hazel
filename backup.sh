@@ -3,4 +3,5 @@
 cd ~/jarvis
 git add -A
 git commit -m "${1:-checkpoint $(date '+%Y-%m-%d %H:%M')}"
+git push origin main 2>/dev/null || echo "Local only (no remote configured)"
 git log --oneline -1
