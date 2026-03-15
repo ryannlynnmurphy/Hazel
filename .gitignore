@@ -9,3 +9,9 @@ venv/
 .spotify_cache
 token.json
 memory.db
+ui/arcade.html
+ui/billiards.html
+ui/flyover.html
+ui/garrison.html
+ui/rally.html
+ui/solitaire.html
