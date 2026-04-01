@@ -2,10 +2,14 @@
 .env
 .env.local
 .env.*.local
+.env.production
 *.key
+*.pem
 credentials/
 credentials.json
 token.json
+*.secret
+*.secrets
 
 # Python
 __pycache__/
@@ -26,6 +30,8 @@ webui/cache/
 .hzl_pids
 .spotify_cache
 memory.db
+shopping.db
+*.db
 
 # Logs
 *.log

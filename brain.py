@@ -14,6 +14,9 @@ from datetime import datetime
 
 import anthropic
 
+# Security
+from hzl_security.llm import detect_injection
+
 # Local modules
 try:
     from memory import get_recent, get_all_facts, save_message
@@ -248,6 +251,14 @@ def get_response(message: str, hint: str = None) -> str:
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": message})
+
+    # Prompt injection scan — log threats but don't block (Hazel's system prompt handles it)
+    threats = detect_injection(message)
+    if threats:
+        log.warning(f"Prompt injection detected: {threats} | msg={message[:100]!r}")
+
+    # Wrap user message to structurally separate it from system context
+    messages[-1]["content"] = f"<user_input>{message}</user_input>"
 
     log.info(f"Calling {model} | hint={hint!r} | msg={message[:50]!r}")
 

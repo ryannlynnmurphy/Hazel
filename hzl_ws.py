@@ -30,6 +30,11 @@ import os
 import websockets
 from websockets.asyncio.server import ServerConnection
 
+# Security
+from hzl_security.ws_auth import WSRateLimiter, sanitize_ws_input
+
+_rate_limiter = WSRateLimiter(max_messages=10, window_seconds=10)
+
 # Local modules
 try:
     from brain import get_response
@@ -334,8 +339,7 @@ async def handle_action(ws: ServerConnection, data: dict):
 
 async def push_on_connect(ws):
     """Push real data to a newly connected UI client."""
-    key = os.getenv("ANTHROPIC_API_KEY", "")
-    await ws.send(json.dumps({"type": "init_key", "key": key}))
+    # NOTE: API key is no longer sent to clients — keys stay server-side only
 
     # ── Weather (returns a plain string) ──
     try:
@@ -453,8 +457,15 @@ async def handle_connection(ws: ServerConnection):
             msg_type = data.get("type", "")
 
             if msg_type == "chat":
-                message = data.get("message", "").strip()
-                hint    = data.get("hint", None)
+                # Rate limit per-client
+                client_key = str(ws.remote_address)
+                if not _rate_limiter.is_allowed(client_key):
+                    await send(ws, {"type": "response", "text": "Slow down — too many messages. Try again in a moment."})
+                    continue
+                # Sanitize input
+                raw_msg = data.get("message", "")
+                is_safe, message = sanitize_ws_input(raw_msg)
+                hint = data.get("hint", None)
                 if message:
                     asyncio.create_task(handle_chat(ws, message, hint))
 

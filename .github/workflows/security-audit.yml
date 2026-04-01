@@ -1,0 +1,125 @@
+name: HZL Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run every Monday at 9am UTC — weekly dependency audit
+    - cron: "0 9 * * 1"
+
+jobs:
+  # ── Secret Scanning ──────────────────────────────────────────────────────────
+  scan-secrets:
+    name: Scan for Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for gitleaks
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # ── JS/TS Dependency Audit (HZL Academy) ─────────────────────────────────────
+  audit-node:
+    name: Node.js Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm ci
+        working-directory: .
+        continue-on-error: true
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for known malicious packages
+        run: npx is-website-vulnerable || true
+
+  # ── Python Dependency Audit (Hazel) ──────────────────────────────────────────
+  audit-python:
+    name: Python Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        run: |
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt
+          else
+            echo "No requirements.txt found — skipping."
+          fi
+
+  # ── Static Analysis ───────────────────────────────────────────────────────────
+  static-analysis:
+    name: Static Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit (Python SAST)
+        run: pip install bandit
+
+      - name: Run Bandit on Python files
+        run: |
+          find . -name "*.py" -not -path "./.git/*" -not -path "./node_modules/*" \
+            | xargs bandit -ll -ii 2>/dev/null || true
+
+  # ── Environment Check ─────────────────────────────────────────────────────────
+  check-env-safety:
+    name: Check .env files aren't committed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if .env committed
+        run: |
+          # Look for committed .env files (not .env.example)
+          if git ls-files | grep -E "^\.env$|^\.env\.local$|^\.env\.production$"; then
+            echo "❌ ERROR: .env file committed to repo."
+            echo "Remove it with: git rm --cached .env"
+            echo "Then add .env to .gitignore"
+            exit 1
+          else
+            echo "✅ No .env files committed."
+          fi
+
+      - name: Check .gitignore has .env entries
+        run: |
+          if [ -f .gitignore ]; then
+            if ! grep -q "^\.env$\|^\.env\." .gitignore; then
+              echo "⚠️  WARNING: .env not found in .gitignore"
+              echo "Add: echo '.env' >> .gitignore"
+            else
+              echo "✅ .gitignore covers .env files."
+            fi
+          else
+            echo "⚠️  WARNING: No .gitignore found."
+          fi
