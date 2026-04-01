@@ -10,7 +10,8 @@ import os
 import datetime
 import time
 
-DB_PATH = os.path.expanduser("~/jarvis/memory.db")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(_HZL_DIR, "memory.db")
 
 # ── Database Init ─────────────────────────────────────────────────────────────
 def _init_health_tables():

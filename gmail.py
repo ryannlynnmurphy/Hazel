@@ -14,8 +14,9 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar"
 ]
 
-CREDS_FILE = os.path.expanduser("~/jarvis/credentials.json")
-TOKEN_FILE = os.path.expanduser("~/jarvis/token.json")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+CREDS_FILE = os.path.join(_HZL_DIR, "credentials.json")
+TOKEN_FILE = os.path.join(_HZL_DIR, "token.json")
 
 def get_service():
     creds = None

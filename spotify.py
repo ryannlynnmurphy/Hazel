@@ -20,7 +20,8 @@ log = get_logger("spotify")
 CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:8888/callback")
-CACHE_PATH    = os.path.expanduser("~/jarvis/.spotify_cache")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+CACHE_PATH    = os.path.join(_HZL_DIR, ".spotify_cache")
 
 SCOPES = " ".join([
     "user-read-playback-state",

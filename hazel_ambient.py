@@ -22,7 +22,8 @@ DECIDE_MAX_TOKENS   = 200
 CONTEXT_MAX_CHARS   = 1200
 
 # Panel persistence — survive restarts
-PANEL_DIR = Path(os.path.expanduser("~/jarvis/ui/panels"))
+_HZL_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+PANEL_DIR = _HZL_DIR / "ui" / "panels"
 PANEL_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── STATE ──

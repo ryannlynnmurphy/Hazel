@@ -10,7 +10,8 @@ import sys
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
-LOG_DIR = os.path.expanduser("~/jarvis/logs")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.join(_HZL_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # ── ANSI colors ───────────────────────────────────────────────────────────────

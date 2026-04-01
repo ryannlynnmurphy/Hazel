@@ -13,7 +13,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/contacts"
 ]
 
-TOKEN_FILE = os.path.expanduser("~/jarvis/token.json")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+TOKEN_FILE = os.path.join(_HZL_DIR, "token.json")
 
 def get_service():
     creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)

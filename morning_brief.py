@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import anthropic
 
-VOICE_MODEL = os.path.expanduser("~/jarvis/voices/en_US-lessac-medium.onnx")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+VOICE_MODEL = os.path.join(_HZL_DIR, "voices", "en_US-lessac-medium.onnx")
 WEATHER_KEY = os.environ.get("WEATHER_API_KEY", "")
 CITY = os.environ.get("JARVIS_CITY", "New York")
 

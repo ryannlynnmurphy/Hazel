@@ -7,7 +7,8 @@ import sqlite3
 import datetime
 import os
 
-DB_PATH = os.path.expanduser("~/jarvis/memory.db")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(_HZL_DIR, "memory.db")
 
 
 def _connect():

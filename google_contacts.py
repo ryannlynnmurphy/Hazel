@@ -2,8 +2,9 @@ import os
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-TOKEN_FILE = os.path.expanduser("~/jarvis/token.json")
-CREDS_FILE = os.path.expanduser("~/jarvis/credentials.json")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+TOKEN_FILE = os.path.join(_HZL_DIR, "token.json")
+CREDS_FILE = os.path.join(_HZL_DIR, "credentials.json")
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",

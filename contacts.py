@@ -1,5 +1,6 @@
 import json, os, re
-CONTACTS_FILE = os.path.expanduser("~/jarvis/contacts.json")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+CONTACTS_FILE = os.path.join(_HZL_DIR, "contacts.json")
 
 def _load():
     if not os.path.exists(CONTACTS_FILE):

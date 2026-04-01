@@ -15,7 +15,8 @@ from hzl_logger import get_logger
 
 log = get_logger("shopping")
 
-DB_PATH               = os.path.expanduser("~/jarvis/shopping.db")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH               = os.path.join(_HZL_DIR, "shopping.db")
 TODOIST_TOKEN         = os.getenv("TODOIST_API_TOKEN")
 TODOIST_BASE          = "https://api.todoist.com/api/v1"
 SHOPPING_PROJECT_NAME = "Shopping"

@@ -187,7 +187,7 @@ def _speak_elevenlabs(text: str):
 
 def _speak_piper(text: str):
     """Local Piper TTS fallback."""
-    voice_dir = os.path.expanduser("~/jarvis/voices")
+    voice_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voices")
     model     = os.path.join(voice_dir, "en_US-lessac-medium.onnx")
 
     if not os.path.exists(model):

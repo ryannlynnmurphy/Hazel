@@ -101,7 +101,7 @@ class HazelLauncher:
         self.status.config(text="● starting...", fg="#ffd43b")
         
         def run():
-            os.chdir(os.path.expanduser("~/jarvis"))
+            os.chdir(os.path.dirname(os.path.abspath(__file__)))
             self.hazel_process = subprocess.Popen(
                 ["python3", "main.py"],
                 stdout=subprocess.PIPE,

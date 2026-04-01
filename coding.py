@@ -2,7 +2,8 @@ import os
 import json
 from code_runner import run_code
 
-SNIPPETS_FILE = os.path.expanduser("~/jarvis/snippets.json")
+_HZL_DIR = os.path.dirname(os.path.abspath(__file__))
+SNIPPETS_FILE = os.path.join(_HZL_DIR, "snippets.json")
 
 def _load_snippets():
     if not os.path.exists(SNIPPETS_FILE):

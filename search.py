@@ -81,7 +81,7 @@ from tavily import TavilyClient
 
 def web_search(query):
     try:
-        api_key = os.getenv("TAVILY_API_KEY", "REDACTED_TAVILY_KEY")
+        api_key = os.getenv("TAVILY_API_KEY", "")
         if not api_key:
             return "No Tavily API key found."
         client = TavilyClient(api_key=api_key)
