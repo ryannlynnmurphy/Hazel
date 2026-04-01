@@ -34,7 +34,7 @@ from websockets.asyncio.server import ServerConnection
 from hzl_security.ws_auth import WSRateLimiter, sanitize_ws_input
 
 # Cluster routing
-from hzl_ws_integration import get_routing_context, record_routing_outcome, shutdown_integration
+from hzl_cluster.integration import get_routing_context, record_routing_outcome, shutdown_integration
 
 _rate_limiter = WSRateLimiter(max_messages=10, window_seconds=10)
 

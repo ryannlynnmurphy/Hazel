@@ -1,7 +1,5 @@
 # HZL Cluster Layer -- Python dependencies
 # pip install -r requirements_hzl.txt --break-system-packages
 
-aiohttp>=3.9.0          # orchestrator REST API + ws integration client
-psutil>=5.9.0           # cpu/memory stats for node health
-pyyaml>=6.0             # hzl_config.yaml parsing
+hzl-cluster @ git+https://github.com/ryannlynnmurphy/hzl-cluster.git
 anthropic>=0.25.0       # Claude API (already installed)
