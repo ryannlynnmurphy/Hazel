@@ -1,0 +1,16 @@
+[Unit]
+Description=HZL Hazel — AI assistant WebSocket + main
+After=network.target hzl-orchestrator.service
+Requires=hzl-orchestrator.service
+
+[Service]
+Type=simple
+User=ryann
+WorkingDirectory=/home/ryann/Hazel
+EnvironmentFile=/home/ryann/Hazel/.env
+ExecStart=/usr/bin/python3 /home/ryann/Hazel/main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

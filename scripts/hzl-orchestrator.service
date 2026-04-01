@@ -1,0 +1,16 @@
+[Unit]
+Description=HZL Orchestrator — cluster routing and health API
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ryann
+WorkingDirectory=/home/ryann/Hazel
+EnvironmentFile=/home/ryann/Hazel/.env
+ExecStart=/usr/bin/python3 /home/ryann/Hazel/hzl_orchestrator.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

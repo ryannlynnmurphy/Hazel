@@ -1,0 +1,14 @@
+[Unit]
+Description=HZL UI — static file server for Hazel frontend
+After=network.target
+
+[Service]
+Type=simple
+User=ryann
+WorkingDirectory=/home/ryann/Hazel/ui
+ExecStart=/usr/bin/python3 -m http.server 8082 --directory /home/ryann/Hazel/ui
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
