@@ -1,14 +1,43 @@
+# Environment & secrets
 .env
-*.pyc
+.env.local
+.env.*.local
+*.key
+credentials/
+credentials.json
+token.json
+
+# Python
 __pycache__/
-*.log
-.DS_Store
-node_modules/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
 venv/
+.venv/
+
+# Large model files
+voices/*.onnx
+*.onnx
+webui/cache/
+
+# Runtime / generated files
 .hzl_pids
 .spotify_cache
-token.json
 memory.db
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (in case webui uses it)
+node_modules/
+
+# Local UI experiments
 ui/arcade.html
 ui/billiards.html
 ui/flyover.html
