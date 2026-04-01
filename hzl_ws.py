@@ -33,6 +33,9 @@ from websockets.asyncio.server import ServerConnection
 # Security
 from hzl_security.ws_auth import WSRateLimiter, sanitize_ws_input
 
+# Cluster routing
+from hzl_ws_integration import get_routing_context, record_routing_outcome, shutdown_integration
+
 _rate_limiter = WSRateLimiter(max_messages=10, window_seconds=10)
 
 # Local modules
@@ -132,11 +135,16 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
         return
     _BUSY = True
     await broadcast({"type": "thinking"})
-    log.info(f"Chat → hint={hint!r} msg={message[:60]!r}")
+    log.info(f"Chat -> hint={hint!r} msg={message[:60]!r}")
 
     try:
-        # brain.py handles model routing (sonnet vs haiku) and action tag parsing
-        # Check if message is asking to read a news article — use Tavily
+        # Get routing decision from orchestrator (model + max_tokens)
+        import time as _time
+        ctx = await get_routing_context(message)
+        log.info(f"Routed -> task={ctx.task_type} model={ctx.model} tokens={ctx.max_tokens} node={ctx.node_hostname or 'local'}")
+        t0 = _time.monotonic()
+
+        # Check if message is asking to read a news article -- use Tavily
         import re as _re2
         news_read = _re2.search(r'Read this news article.*?(https?://[^\s]+)', message, _re2.IGNORECASE)
         if news_read:
@@ -144,30 +152,31 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
             log.info(f"Fetching news article via Tavily: {url}")
             try:
                 from search import web_search
-                # Use Tavily to search for the article content
                 article_content = await asyncio.to_thread(web_search, f"site:{url} full article")
                 if article_content and "error" not in article_content.lower():
                     augmented = f"{message}\n\n[Article content from Tavily]:\n{article_content}"
-                    response_text = await asyncio.to_thread(get_response, augmented, hint)
+                    response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
                 else:
-                    # Fallback: search for the topic
                     topic = message.split(' - ')[-1] if ' - ' in message else message
                     search_result = await asyncio.to_thread(web_search, topic[:100])
                     augmented = f"{message}\n\n[Related info from web search]:\n{search_result}"
-                    response_text = await asyncio.to_thread(get_response, augmented, hint)
+                    response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
             except Exception as e:
                 log.warning(f"Tavily fetch failed: {e}")
-                response_text = await asyncio.to_thread(get_response, message, hint)
-        # Check if message is asking to read an email — pre-fetch body
+                response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
         elif _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE):
             email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
             from gmail import get_email_body
             sender = email_read.group(1).strip()
             email_body = await asyncio.to_thread(get_email_body, sender)
             augmented = f"{message}\n\n[Email content fetched]:\n{email_body}"
-            response_text = await asyncio.to_thread(get_response, augmented, hint)
+            response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
         else:
-            response_text = await asyncio.to_thread(get_response, message, hint)
+            response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
+
+        # Record success outcome for circuit breaker
+        elapsed_ms = (_time.monotonic() - t0) * 1000
+        record_routing_outcome(ctx, success=True, latency_ms=elapsed_ms)
         await broadcast({"type": "speaking"})
         await broadcast({"type": "response", "text": response_text})
         
@@ -294,6 +303,11 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
     except Exception as e:
         log.error(f"Brain error: {e}")
         await broadcast({"type": "response", "text": "Something went wrong. Please try again."})
+        # Record failure outcome for circuit breaker
+        try:
+            record_routing_outcome(ctx, success=False)
+        except Exception:
+            pass
     finally:
         _BUSY = False
         await broadcast({"type": "idle"})
@@ -523,7 +537,8 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        log.info("Shutdown requested — goodbye.")
+        asyncio.run(shutdown_integration())
+        log.info("Shutdown requested -- goodbye.")
 
 # ── Compatibility aliases for main.py ──
 _LOOP = None

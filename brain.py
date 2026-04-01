@@ -233,13 +233,17 @@ def get_client() -> anthropic.Anthropic:
         _client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     return _client
 
-def get_response(message: str, hint: str = None) -> str:
+def get_response(message: str, hint: str = None, routed_model: str = None, routed_max_tokens: int = None) -> str:
     """
     Called by hzl_ws.py for every chat message.
     Returns cleaned response text (action tags stripped for display).
+
+    routed_model/routed_max_tokens: if provided by the orchestrator,
+    override local model selection. Falls back to choose_model() if not set.
     """
     client  = get_client()
-    model   = choose_model(message)
+    model   = routed_model or choose_model(message)
+    max_tokens = routed_max_tokens or 1024
     history = get_recent(12)
     system  = build_system_prompt(hint)
 
@@ -260,12 +264,12 @@ def get_response(message: str, hint: str = None) -> str:
     # Wrap user message to structurally separate it from system context
     messages[-1]["content"] = f"<user_input>{message}</user_input>"
 
-    log.info(f"Calling {model} | hint={hint!r} | msg={message[:50]!r}")
+    log.info(f"Calling {model} (max_tokens={max_tokens}) | hint={hint!r} | msg={message[:50]!r}")
 
     try:
         response = client.messages.create(
             model=model,
-            max_tokens=1024,
+            max_tokens=max_tokens,
             system=system,
             messages=messages,
         )
