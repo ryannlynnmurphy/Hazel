@@ -8,10 +8,12 @@ SNIPPETS_FILE = os.path.join(_HZL_DIR, "snippets.json")
 def _load_snippets():
     if not os.path.exists(SNIPPETS_FILE):
         return []
-    return json.load(open(SNIPPETS_FILE))
+    with open(SNIPPETS_FILE) as f:
+        return json.load(f)
 
 def _save_snippets(snippets):
-    json.dump(snippets, open(SNIPPETS_FILE, 'w'), indent=2)
+    with open(SNIPPETS_FILE, "w") as f:
+        json.dump(snippets, f, indent=2)
 
 def save_snippet(name, code, language='python', description=''):
     snippets = _load_snippets()

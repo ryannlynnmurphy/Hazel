@@ -172,17 +172,21 @@ def _speak_elevenlabs(text: str):
     response.raise_for_status()
     mp3 = tempfile.mktemp(suffix=".mp3")
     wav = tempfile.mktemp(suffix=".wav")
-    with open(mp3, "wb") as f:
-        for chunk in response.iter_content(chunk_size=4096):
-            if chunk:
-                f.write(chunk)
-    # Convert MP3 to WAV and play via aplay (Blue Yeti compatible)
-    subprocess.run(["ffmpeg", "-y", "-i", mp3, "-ar", "44100", "-ac", "2", wav],
-                   check=True, capture_output=True)
-    subprocess.run(["aplay", "-D", SPEAKER_CARD, "-q", wav],
-                   check=True, capture_output=True)
-    os.remove(mp3)
-    os.remove(wav)
+    try:
+        with open(mp3, "wb") as f:
+            for chunk in response.iter_content(chunk_size=4096):
+                if chunk:
+                    f.write(chunk)
+        subprocess.run(["ffmpeg", "-y", "-i", mp3, "-ar", "44100", "-ac", "2", wav],
+                       check=True, capture_output=True)
+        subprocess.run(["aplay", "-D", SPEAKER_CARD, "-q", wav],
+                       check=True, capture_output=True)
+    finally:
+        for f in (mp3, wav):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
 
 def _speak_piper(text: str):

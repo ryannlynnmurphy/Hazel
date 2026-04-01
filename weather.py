@@ -22,7 +22,12 @@ def get_weather():
         cw = data["current_weather"]
         temp = cw["temperature"]
         wind = cw["windspeed"]
-        hour_index = 0
+        # Find current hour index in the hourly arrays
+        hour_str = cw.get("time", "")[:13]
+        try:
+            hour_index = next(i for i, t in enumerate(data["hourly"]["time"]) if t.startswith(hour_str))
+        except StopIteration:
+            hour_index = 0
         feels = data["hourly"]["apparent_temperature"][hour_index]
         humidity = data["hourly"]["relative_humidity_2m"][hour_index]
         result = f"{temp}°F (feels like {feels}°F), humidity {humidity}%, wind {wind}mph"

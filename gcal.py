@@ -17,9 +17,16 @@ _HZL_DIR = os.path.dirname(os.path.abspath(__file__))
 TOKEN_FILE = os.path.join(_HZL_DIR, "token.json")
 
 def get_service():
+    if not os.path.exists(TOKEN_FILE):
+        raise FileNotFoundError(
+            f"Google token not found at {TOKEN_FILE}. "
+            "Run: cd ~/Hazel && python3 gmail.py to authenticate."
+        )
     creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
+        with open(TOKEN_FILE, "w") as f:
+            f.write(creds.to_json())
     return build("calendar", "v3", credentials=creds)
 
 def get_upcoming_events(max_results=5):

@@ -27,7 +27,6 @@ if not os.environ.get("JARVIS_MIC_CARD"):
     os.environ["JARVIS_MIC_CARD"] = mic
 
 RUNNING = True
-SPEAKING = False
 
 def shutdown(sig=None, frame=None):
     global RUNNING
@@ -51,12 +50,9 @@ def process_response(reply):
     actions = parse_actions(reply)
     import re
     clean_text = re.sub(r'\[[A-Z_]+:[^\]]*\]', '', reply, flags=re.IGNORECASE).strip()
-    global SPEAKING
     if clean_text:
         broadcast({"state": "speaking", "transcript": clean_text})
-        SPEAKING = True
         speak(clean_text)
-        SPEAKING = False
         # Auto-save long structured responses as deliverables
         if len(clean_text) > 300 and any(marker in clean_text.lower() for marker in [
             "here's", "here is", "plan", "summary", "brief", "schedule", "list",

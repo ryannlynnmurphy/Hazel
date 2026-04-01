@@ -135,7 +135,7 @@ def previous() -> str:
 
 def set_volume(level: int) -> str:
     level = max(0, min(100, int(level)))
-    log.info(f"set_volume() — level={level}")
+    log.info(f"set_volume() -- level={level}")
     try:
         sp = _client()
         try:
@@ -144,11 +144,9 @@ def set_volume(level: int) -> str:
             if "VOLUME_CONTROL_DISALLOW" in str(e):
                 return "Volume control isn't supported on the active device."
             raise
-    except Exception as e:
-        raise
         return f"Volume set to {level}%."
     except Exception as e:
-        log.error(f"set_volume() failed — {e}", exc_info=True)
+        log.error(f"set_volume() failed -- {e}", exc_info=True)
         return f"Spotify error: {e}"
 
 

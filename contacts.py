@@ -5,10 +5,12 @@ CONTACTS_FILE = os.path.join(_HZL_DIR, "contacts.json")
 def _load():
     if not os.path.exists(CONTACTS_FILE):
         return []
-    return json.load(open(CONTACTS_FILE))
+    with open(CONTACTS_FILE) as f:
+        return json.load(f)
 
 def _save(contacts):
-    json.dump(contacts, open(CONTACTS_FILE,"w"), indent=2)
+    with open(CONTACTS_FILE, "w") as f:
+        json.dump(contacts, f, indent=2)
 
 def get_all():
     return _load()

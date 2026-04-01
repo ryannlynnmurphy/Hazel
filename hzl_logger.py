@@ -94,14 +94,17 @@ def get_logger(name: str, level: str = None) -> logging.Logger:
     file_handler.setFormatter(FileFormatter())
     logger.addHandler(file_handler)
 
-    # ── Master log (all modules in one file) ─────────────────────────────────
-    master_file = os.path.join(LOG_DIR, "hzl_all.log")
-    master_handler = RotatingFileHandler(
-        master_file, maxBytes=5_000_000, backupCount=5, encoding="utf-8"
-    )
-    master_handler.setLevel(logging.DEBUG)
-    master_handler.setFormatter(FileFormatter())
-    logger.addHandler(master_handler)
+    # ── Master log (all modules in one file, attached to root hzl logger once) ─
+    root_hzl = logging.getLogger("hzl")
+    if not root_hzl.handlers:
+        master_file = os.path.join(LOG_DIR, "hzl_all.log")
+        master_handler = RotatingFileHandler(
+            master_file, maxBytes=5_000_000, backupCount=5, encoding="utf-8"
+        )
+        master_handler.setLevel(logging.DEBUG)
+        master_handler.setFormatter(FileFormatter())
+        root_hzl.addHandler(master_handler)
+        root_hzl.setLevel(logging.DEBUG)
 
     logger.propagate = False
     return logger

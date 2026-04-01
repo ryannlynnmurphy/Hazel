@@ -108,7 +108,6 @@ def _init_creative_tables():
         )
     """)
 
-    c.execute("DROP TABLE IF EXISTS creative_briefs")
     c.execute("""
         CREATE TABLE IF NOT EXISTS creative_briefs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
