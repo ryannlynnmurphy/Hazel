@@ -72,7 +72,7 @@ log = logging.getLogger(__name__)
 
 # Track all connected clients
 CLIENTS: set[ServerConnection] = set()
-_BUSY = False  # Prevent Hazel from responding while already processing
+_chat_lock = asyncio.Lock()  # Prevent concurrent chat processing
 
 
 async def broadcast(payload: dict):
@@ -129,11 +129,14 @@ async def refresh_panels():
 
 async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
     """Process a chat message through brain.py and stream response back."""
-    global _BUSY
-    if _BUSY:
-        log.info("Hazel busy — dropping message")
+    if _chat_lock.locked():
+        log.info("Hazel busy -- dropping message")
         return
-    _BUSY = True
+    async with _chat_lock:
+        await _handle_chat_inner(ws, message, hint)
+
+
+async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = None):
     await broadcast({"type": "thinking"})
     log.info(f"Chat -> hint={hint!r} msg={message[:60]!r}")
 
@@ -309,7 +312,6 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
         except Exception:
             pass
     finally:
-        _BUSY = False
         await broadcast({"type": "idle"})
 
 
@@ -515,11 +517,12 @@ async def handle_connection(ws: ServerConnection):
     except websockets.exceptions.ConnectionClosedOK:
         log.info(f"Client disconnected cleanly: {remote}")
     except websockets.exceptions.ConnectionClosedError as e:
-        log.warning(f"Client disconnected with error: {remote} — {e}")
+        log.warning(f"Client disconnected with error: {remote} -- {e}")
     except Exception as e:
         log.error(f"Handler error for {remote}: {e}")
     finally:
         CLIENTS.discard(ws)
+        _rate_limiter.cleanup()
         log.info(f"Client removed: {remote} | Active clients: {len(CLIENTS)}")
 
 

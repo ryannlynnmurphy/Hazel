@@ -78,6 +78,7 @@ def setup_logging(config: dict) -> None:
 logger = logging.getLogger("hzl.orchestrator")
 
 ORCHESTRATOR_PORT = int(os.environ.get("HZL_ORCH_PORT", 9000))
+ORCHESTRATOR_HOST = os.environ.get("HZL_ORCH_HOST", "127.0.0.1")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -249,10 +250,10 @@ class HZLOrchestrator:
 
         self._runner = web.AppRunner(app)
         await self._runner.setup()
-        site = web.TCPSite(self._runner, "0.0.0.0", ORCHESTRATOR_PORT)
+        site = web.TCPSite(self._runner, ORCHESTRATOR_HOST, ORCHESTRATOR_PORT)
         await site.start()
 
-        logger.info(f"[Orchestrator] API on http://0.0.0.0:{ORCHESTRATOR_PORT}")
+        logger.info(f"[Orchestrator] API on http://{ORCHESTRATOR_HOST}:{ORCHESTRATOR_PORT}")
         logger.info("[Orchestrator] Routes: /route /classify /outcome /status /nodes /health /circuit-breakers")
 
     # ── Graceful shutdown ─────────────────────────────────────
@@ -299,10 +300,14 @@ class HZLOrchestrator:
         logger.info(f"  Caps:   {self.network.capabilities}")
         logger.info("=" * 60)
 
-        await asyncio.gather(
-            self._start_api(),
-            self.network.start(),
-        )
+        try:
+            await self._start_api()
+        except Exception as e:
+            logger.error(f"[Orchestrator] API failed to start: {e}")
+            await self.shutdown()
+            return
+
+        await self.network.start()
 
 
 # ─────────────────────────────────────────────────────────────

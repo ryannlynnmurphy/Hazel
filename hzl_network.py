@@ -245,6 +245,7 @@ class HZLNetwork:
         self._lock = asyncio.Lock()
         self._callbacks: List[EventCallback] = []
         self._transport: Optional[asyncio.DatagramTransport] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._running: bool = False
 
     def on_node_event(self, cb: EventCallback) -> None:
@@ -288,7 +289,7 @@ class HZLNetwork:
             peer = payload.get("hostname")
             if not peer or peer == self.hostname:
                 return
-            asyncio.get_event_loop().create_task(self._update_node(payload))
+            self._loop.create_task(self._update_node(payload))
         except (json.JSONDecodeError, UnicodeDecodeError):
             pass
 
@@ -298,10 +299,10 @@ class HZLNetwork:
             existing = self._nodes.get(peer)
             was_dead = existing is not None and not existing.alive
             is_new   = existing is None
-
             self._nodes[peer] = NodeInfo.from_beacon(payload)
             node = self._nodes[peer]
 
+        # Fire callbacks outside the lock to prevent deadlocks
         if is_new:
             logger.info(f"[Network] Node JOINED: {peer} ({payload['ip']}) caps={payload.get('capabilities', [])}")
             self._fire(NodeEvent.JOINED, node)
@@ -354,6 +355,7 @@ class HZLNetwork:
     async def _watchdog_loop(self) -> None:
         while self._running:
             now = time.monotonic()
+            lost_nodes = []
             async with self._lock:
                 for hostname, node in list(self._nodes.items()):
                     if hostname == self.hostname:
@@ -365,7 +367,10 @@ class HZLNetwork:
                             f"[Network] Node LOST: {hostname} "
                             f"(silent for {int(age)}s)"
                         )
-                        self._fire(NodeEvent.LOST, node)
+                        lost_nodes.append(node)
+            # Fire callbacks outside the lock to prevent deadlocks
+            for node in lost_nodes:
+                self._fire(NodeEvent.LOST, node)
             await asyncio.sleep(self.heartbeat_interval)
 
     async def start(self) -> None:
@@ -373,7 +378,8 @@ class HZLNetwork:
         self._sysmon.start()
         await self._register_self()
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
+        self._loop = loop
         self._transport, _ = await loop.create_datagram_endpoint(
             lambda: _BeaconProtocol(on_receive=self._handle_beacon),
             local_addr=("", self.discovery_port),

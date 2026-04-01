@@ -27,9 +27,11 @@ TOKEN_EXPIRY_SECONDS = int(os.environ.get("HZL_WS_TOKEN_EXPIRY", 3600))  # 1hr d
 WS_SECRET = os.environ.get("HZL_WS_SECRET")
 
 if not WS_SECRET:
-    raise EnvironmentError(
-        "HZL_WS_SECRET not set. Add it to your .env file.\n"
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    WS_SECRET = secrets.token_hex(32)
+    logger.warning(
+        "HZL_WS_SECRET not set -- generated a temporary one. "
+        "Tokens will not persist across restarts. "
+        "Set HZL_WS_SECRET in .env for persistence."
     )
 
 

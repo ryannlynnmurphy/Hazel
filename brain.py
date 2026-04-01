@@ -292,4 +292,3 @@ def get_response(message: str, hint: str = None, routed_model: str = None, route
 
     return clean
 ask = get_response
-ask = get_response

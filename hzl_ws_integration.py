@@ -13,6 +13,7 @@ Usage:
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -21,7 +22,7 @@ import aiohttp
 
 logger = logging.getLogger("hzl.ws.integration")
 
-ORCHESTRATOR_URL   = "http://localhost:9000"
+ORCHESTRATOR_URL   = os.environ.get("HZL_ORCHESTRATOR_URL", "http://localhost:9000")
 REQUEST_TIMEOUT    = 2.0
 MAX_RETRIES        = 2
 BACKOFF_BASE       = 0.2
