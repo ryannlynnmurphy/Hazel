@@ -40,11 +40,13 @@ _rate_limiter = WSRateLimiter(max_messages=10, window_seconds=10)
 
 # Local modules
 try:
-    from brain import get_response
+    from brain import get_response, get_last_actions
 except ImportError:
     logging.warning("brain.py not found — responses will be echoed")
     async def get_response(message, hint=None):
         return f"[brain.py missing] You said: {message}"
+    def get_last_actions():
+        return []
 
 try:
     import spotify
@@ -125,6 +127,115 @@ async def refresh_panels():
             await broadcast({"type": "email_state", "emails": emails})
     except Exception as e:
         log.warning(f"Email refresh failed: {e}")
+
+
+async def handle_gateway_action(cmd: str) -> None:
+    """Send gateway commands to the orchestrator."""
+    from hzl_cluster.queue_hub import HazelMessage
+    import aiohttp
+
+    ORCHESTRATOR_URL = os.environ.get("HZL_ORCHESTRATOR_URL", "http://localhost:9000")
+    GATEWAY_URL = os.environ.get("HZL_GATEWAY_URL", "http://localhost:9010")
+
+    try:
+        if cmd == "sync":
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{GATEWAY_URL}/sync") as resp:
+                    result = await resp.json()
+                    log.info(f"[Gateway] Sync result: {result}")
+
+        elif cmd in ("fetch_email", "fetch_weather", "fetch_news"):
+            action_map = {
+                "fetch_email": "fetch.email",
+                "fetch_weather": "fetch.weather",
+                "fetch_news": "fetch.news",
+            }
+            msg = HazelMessage.create(
+                source="hazel-core",
+                destination="gateway",
+                msg_type="fetch",
+                action=action_map[cmd],
+                payload={},
+            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{ORCHESTRATOR_URL}/ingest",
+                    json={"messages": [msg.to_dict()]},
+                ) as resp:
+                    result = await resp.json()
+                    log.info(f"[Gateway] Queued {cmd}: {result}")
+
+        elif cmd == "lock":
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{GATEWAY_URL}/lock") as resp:
+                    log.info(f"[Gateway] Locked: {await resp.json()}")
+
+        elif cmd == "unlock":
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{GATEWAY_URL}/unlock") as resp:
+                    log.info(f"[Gateway] Unlocked: {await resp.json()}")
+
+        elif cmd == "emergency":
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{GATEWAY_URL}/emergency") as resp:
+                    log.info(f"[Gateway] Emergency: {await resp.json()}")
+
+        elif cmd == "status":
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{GATEWAY_URL}/state") as resp:
+                    result = await resp.json()
+                    log.info(f"[Gateway] Status: {result}")
+
+    except Exception as e:
+        log.error(f"[Gateway] Action {cmd} failed: {e}")
+
+
+async def handle_queue_action(cmd: str, params: dict) -> None:
+    """Queue outbound messages for next sync cycle."""
+    from hzl_cluster.queue_hub import HazelMessage
+    import aiohttp
+
+    ORCHESTRATOR_URL = os.environ.get("HZL_ORCHESTRATOR_URL", "http://localhost:9000")
+
+    try:
+        if cmd == "send_email":
+            msg = HazelMessage.create(
+                source="hazel-core",
+                destination="gateway",
+                msg_type="send",
+                action="send.email",
+                payload={
+                    "to": params.get("to", ""),
+                    "subject": params.get("subject", ""),
+                    "body": params.get("body", ""),
+                },
+            )
+        elif cmd == "send_message":
+            msg = HazelMessage.create(
+                source="hazel-core",
+                destination="gateway",
+                msg_type="send",
+                action="send.message",
+                payload={
+                    "to": params.get("to", ""),
+                    "body": params.get("body", ""),
+                    "via": params.get("via", "signal"),
+                },
+            )
+        else:
+            log.warning(f"[Queue] Unknown cmd: {cmd}")
+            return
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{ORCHESTRATOR_URL}/ingest",
+                json={"messages": [msg.to_dict()]},
+            ) as resp:
+                result = await resp.json()
+                log.info(f"[Queue] Queued {cmd}: {result}")
+
+    except Exception as e:
+        log.error(f"[Queue] Action {cmd} failed: {e}")
 
 
 async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
@@ -302,6 +413,16 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
             await broadcast({"type": "panel_open", "panel": "music"})
         elif any(w in msg_lower for w in ['news','headline','story']):
             await broadcast({"type": "panel_open", "panel": "news"})
+
+        # Dispatch GATEWAY and QUEUE actions parsed by brain.py
+        for action in get_last_actions():
+            if action.get("tag") == "GATEWAY":
+                cmd = action.get("cmd", "")
+                await handle_gateway_action(cmd)
+            elif action.get("tag") == "QUEUE":
+                cmd = action.get("cmd", "")
+                params = action.get("params", {})
+                await handle_queue_action(cmd, params)
 
     except Exception as e:
         log.error(f"Brain error: {e}")

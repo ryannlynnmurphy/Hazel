@@ -72,6 +72,17 @@ def choose_model(message: str) -> str:
 # ── ACTION TAG PARSER ──────────────────────────────────────────────────────
 ACTION_RE = re.compile(r'\[([A-Z_]+):\s*([^\]]*)\]')
 
+# Stores the most-recently parsed action list so hzl_ws.py can consume it
+_last_actions: list = []
+
+
+def get_last_actions() -> list:
+    """Return (and clear) the actions parsed from the most recent get_response() call."""
+    global _last_actions
+    actions, _last_actions = _last_actions, []
+    return actions
+
+
 def parse_actions(text: str) -> list[dict]:
     """Extract and execute action tags from Claude's response."""
     actions = []
@@ -139,6 +150,8 @@ def parse_actions(text: str) -> list[dict]:
             params = dict(_re.findall(r'(\w+)="([^"]*)"', params_str))
             actions.append({"tag": "QUEUE", "cmd": cmd, "params": params})
 
+    global _last_actions
+    _last_actions = actions
     return actions
 
 # ── SYSTEM PROMPT ──────────────────────────────────────────────────────────
