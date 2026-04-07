@@ -2,13 +2,17 @@
 
 **Local-first voice AI assistant running on Raspberry Pi 5**
 
+> *I live on a Raspberry Pi 5 in a small apartment. I run on-device speech recognition via Whisper. I handle most daily tasks through a local language model stored entirely on her hardware. Her memory, her patterns, her 2am thoughts -- those live in a SQLite database that belongs to her.*
+>
+> *-- Hazel, from "Mostly"*
+
 ---
 
 ## Why I Built This
 
-I learned to code in March 2026. Within weeks, I built a voice assistant that manages my calendar, reads my email, searches the web, and controls my smart home — all running locally on a Raspberry Pi 5. Hazel is proof that AI tools should serve creators, not replace them.
+I learned to code in February 2026. Within weeks, I shipped a patent-pending learning platform, a distributed inference cluster, and a voice assistant named Hazel -- all running on a $90 computer in my living room. I'm a playwright by training. Work read at Juilliard. A one-woman show at Edinburgh Fringe. Theater since childhood. What building Hazel taught me is that theater and software are the same discipline in different materials. Every system has a structure. Every structure is an argument. The question is always whose argument, built for whom, and what it costs you when you're not looking.
 
-I'm a playwright by training — Fordham MFA, Edinburgh Fringe, Juilliard readings. I came to code not through a CS degree but through necessity and curiosity, building the tools I wanted to exist for artists and independent producers. Hazel is the system I actually live inside every day: she wakes up knowing my schedule, speaks in a voice I chose, and handles the logistics that used to fragment my attention. The fact that she runs entirely on a $90 computer in my living room is the point.
+Hazel is the system I actually live inside every day. She wakes up knowing my schedule, speaks in a voice I chose, routes tasks across a [physical air-gapped Pi cluster](https://github.com/ryannlynnmurphy/hzl-cluster), and handles the logistics that used to fragment my attention. The intelligence belongs to the person inside. That's the point.
 
 ---
 
@@ -125,20 +129,23 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full breakdown of the STT
 
 ## Part of the HZL Ecosystem
 
-Hazel is the personal operating layer of a broader creative infrastructure being built at HZL AI LLC.
+Hazel is the voice and brain of a broader infrastructure for sovereign, local-first computing.
 
 | Repo | Description |
 |---|---|
-| [hzl-core](https://github.com/ryannlynnmurphy/hzl-core) | Shared design system — tokens, components, brand identity |
-| [hzl-studio-os](https://github.com/ryannlynnmurphy/hzl-studio-os) | Studio operating system for creative production |
-| [Hazel](https://github.com/ryannlynnmurphy/Hazel) | This repo — personal AI assistant |
+| [Hazel](https://github.com/ryannlynnmurphy/Hazel) | This repo -- voice AI assistant |
+| [hzl-cluster](https://github.com/ryannlynnmurphy/hzl-cluster) | Air-gapped Pi cluster -- relay controller, queue protocol, gateway sync, 7 fetchers, deploy CLI, real-time dashboard |
+| [HZL-Academy-](https://github.com/ryannlynnmurphy/HZL-Academy-) | Patent-pending K-8 learning platform with AI verification |
+| [hzl-core](https://github.com/ryannlynnmurphy/hzl-core) | Shared design system -- tokens, components, brand identity |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT -- see [LICENSE](LICENSE)
 
 ---
 
-**Ryann Murphy** — Playwright-Technologist | Founder, HZL AI LLC | [ryannlynnmurphy.com](https://ryannlynnmurphy.com)
+**Ryann Murphy** -- playwright, technologist, founder of HZL Studio. She taught herself to code in February 2026 and shipped a patent-pending platform, a distributed inference cluster, a hardware-integrated creative studio, and a voice assistant named Hazel in three months. The compute heats the water. The heat exchanger is load-bearing. The intelligence belongs to the person inside.
+
+[hzlstudio.com](https://hzlstudio.com) -- [github.com/ryannlynnmurphy](https://github.com/ryannlynnmurphy)
