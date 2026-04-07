@@ -123,6 +123,22 @@ def parse_actions(text: str) -> list[dict]:
                     add_event(parts[0].strip(), parts[1].strip(), parts[2].strip())
             actions.append({"tag": "GCAL", "cmd": cmd})
 
+        elif tag == "GATEWAY":
+            # e.g. [GATEWAY: sync], [GATEWAY: fetch_email], [GATEWAY: lock]
+            cmd = args.lower().strip()
+            actions.append({"tag": "GATEWAY", "cmd": cmd})
+            # Gateway commands are handled by hzl_ws.py via the orchestrator
+
+        elif tag == "QUEUE":
+            # e.g. [QUEUE: send_email to="tim" subject="hi" body="hello"]
+            parts = args.split(maxsplit=1)
+            cmd = parts[0].lower() if parts else ""
+            params_str = parts[1] if len(parts) > 1 else ""
+            # Parse key="value" pairs
+            import re as _re
+            params = dict(_re.findall(r'(\w+)="([^"]*)"', params_str))
+            actions.append({"tag": "QUEUE", "cmd": cmd, "params": params})
+
     return actions
 
 # ── SYSTEM PROMPT ──────────────────────────────────────────────────────────
@@ -159,6 +175,17 @@ def build_system_prompt(hint: str = None) -> str:
     except Exception:
         email_block = ""
 
+    # Cluster status — injected so Hazel knows the system state
+    try:
+        from hzl_cluster.integration import get_cluster_status
+        cluster_raw = get_cluster_status()
+        if cluster_raw:
+            cluster_block = f"\n\nCluster status:\n{cluster_raw}"
+        else:
+            cluster_block = ""
+    except Exception:
+        cluster_block = ""
+
     facts_block = ""
     if facts:
         facts_block = "\n\nWhat you know about the user:\n" + \
@@ -190,7 +217,7 @@ You are part chief of staff, part trusted confidante, part the person who just q
 If someone asks the same question twice, just answer it again cleanly. Do NOT comment on the repetition, do NOT ask what's wrong, do NOT analyze their behavior. Just answer.
 
 Current time: {now}
-Weather: {weather}{facts_block}{calendar_block}{email_block}{hint_note}
+Weather: {weather}{facts_block}{calendar_block}{email_block}{cluster_block}{hint_note}
 
 How you speak:
   • Short and considered. Every word earns its place.
@@ -220,6 +247,14 @@ Action tags (include silently in responses when needed):
   [HEALTH: add_med NAME|DOSE|FREQUENCY|TIME] — Add a medication to track
   [HEALTH: took NAME]                    — Log that user took a medication
   [HEALTH: remove_med NAME]              — Remove a medication from tracking
+  [GATEWAY: sync]                         — Trigger an internet sync cycle
+  [GATEWAY: fetch_email]                  — Queue an email fetch for next sync
+  [GATEWAY: fetch_weather]                — Queue a weather update for next sync
+  [GATEWAY: fetch_news]                   — Queue a news fetch for next sync
+  [GATEWAY: lock]                         — Lock the air-gap (no internet until unlocked)
+  [GATEWAY: unlock]                       — Unlock the air-gap
+  [GATEWAY: status]                       — Report sync status
+  [QUEUE: send_email to="X" subject="Y" body="Z"] — Queue an email to send on next sync
 
 When the user asks to play music, ALWAYS include [SPOTIFY: play QUERY] in your response with the exact artist or song they requested. Example: "Playing The Beatles for you. [SPOTIFY: play The Beatles]"
 Do not say you cannot play music — you can. Always use the action tag."""
