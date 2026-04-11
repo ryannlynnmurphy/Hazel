@@ -25,11 +25,16 @@ def get_service():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
-        else:
+        elif os.environ.get("HZL_GOOGLE_AUTH_INTERACTIVE"):
+            # Only run interactive auth when explicitly requested
             flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
-        with open(TOKEN_FILE, "w") as f:
-            f.write(creds.to_json())
+        else:
+            print("[Gmail] No valid token — run Google auth interactively to connect.")
+            return None
+        if creds:
+            with open(TOKEN_FILE, "w") as f:
+                f.write(creds.to_json())
     return build("gmail", "v1", credentials=creds)
 
 def get_unread_emails(max_results=5, structured=False):

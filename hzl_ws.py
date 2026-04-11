@@ -258,12 +258,14 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
         log.info(f"Routed -> task={ctx.task_type} model={ctx.model} tokens={ctx.max_tokens} node={ctx.node_hostname or 'local'}")
         t0 = _time.monotonic()
 
-        # Check if message is asking to read a news article -- use Tavily
+        # Check if message contains a URL -- fetch via Tavily
         import re as _re2
-        news_read = _re2.search(r'Read this news article.*?(https?://[^\s]+)', message, _re2.IGNORECASE)
-        if news_read:
-            url = news_read.group(1)
-            log.info(f"Fetching news article via Tavily: {url}")
+        url_match = _re2.search(r'(https?://[^\s]+)', message)
+        # Check if message is a web search request
+        search_match = _re2.search(r'(?:search|look up|google|find out|what is|who is|tell me about)\s+(.+)', message, _re2.IGNORECASE)
+        if url_match:
+            url = url_match.group(1)
+            log.info(f"Fetching article via Tavily: {url}")
             try:
                 from search import web_search
                 article_content = await asyncio.to_thread(web_search, f"site:{url} full article")
@@ -277,6 +279,17 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
                     response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
             except Exception as e:
                 log.warning(f"Tavily fetch failed: {e}")
+                response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
+        elif search_match:
+            query = search_match.group(1).strip()
+            log.info(f"Web search via Tavily: {query}")
+            try:
+                from search import web_search
+                search_result = await asyncio.to_thread(web_search, query)
+                augmented = f"{message}\n\n[Web search results from Tavily]:\n{search_result}"
+                response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
+            except Exception as e:
+                log.warning(f"Tavily search failed: {e}")
                 response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
         elif _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE):
             email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
@@ -292,7 +305,10 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
         elapsed_ms = (_time.monotonic() - t0) * 1000
         record_routing_outcome(ctx, success=True, latency_ms=elapsed_ms)
         await broadcast({"type": "speaking"})
-        await broadcast({"type": "response", "text": response_text})
+        # Strip action tags for display, keep raw for Spotify/panel parsing below
+        import re as _re_clean
+        display_text = _re_clean.sub(r'\[[A-Z_]+:[^\]]*\]', '', response_text).strip()
+        await broadcast({"type": "response", "text": display_text})
         
         # Refresh meds UI if medication-related conversation
         med_keywords = ['medication', 'medicine', 'pill', 'take', 'took', 'taking', 'prescription', 'dose', 'vitamin', 'supplement', 'penicillin', 'antibiotic', 'probiotic', 'melatonin']
@@ -397,7 +413,7 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
                 await broadcast({"type": "music_state", **music_data, "recent": recent})
             elif any(w in msg_l for w in ['previous track','previous song','go back']):
                 await asyncio.to_thread(previous)
-        # Auto-open panel based on message keywords
+        # Auto-open panel and refresh data based on message keywords
         import re as _re
         msg_lower = message.lower()
         panel_match = _re.search(r'\[PANEL:\s*(\w+)\]', response_text)
@@ -405,14 +421,59 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
             await broadcast({"type": "panel_open", "panel": panel_match.group(1).lower()})
         elif any(w in msg_lower for w in ['calendar','schedule','week','meeting','event']):
             await broadcast({"type": "panel_open", "panel": "calendar"})
+            try:
+                from gcal import get_upcoming_events as _gcal_get
+                raw = await asyncio.to_thread(_gcal_get, 30)
+                events = []
+                if isinstance(raw, str) and raw and not raw.startswith("No upcoming") and not raw.startswith("Calendar error"):
+                    for line in raw.strip().splitlines():
+                        if ": " in line:
+                            time_part, name_part = line.split(": ", 1)
+                            events.append({"time": time_part.strip(), "name": name_part.strip(), "sub": "", "accent": "gold"})
+                if events:
+                    await broadcast({"type": "calendar_state", "events": events})
+            except Exception:
+                pass
         elif any(w in msg_lower for w in ['email','inbox','mail','message']):
             await broadcast({"type": "panel_open", "panel": "email"})
+            try:
+                from gmail import get_unread_emails as _gmail_get
+                raw = await asyncio.to_thread(_gmail_get, 5, True)
+                if isinstance(raw, list):
+                    emails = [{"from": item.get("from",""), "subj": item.get("subject",""), "snippet": item.get("snippet",""), "id": item.get("id","")} for item in raw]
+                    if emails:
+                        await broadcast({"type": "email_state", "emails": emails})
+            except Exception:
+                pass
         elif any(w in msg_lower for w in ['weather','temperature','forecast','rain','wind']):
             await broadcast({"type": "panel_open", "panel": "weather"})
+            try:
+                from weather import get_weather_structured as _weather_get
+                w = await asyncio.to_thread(_weather_get)
+                if w:
+                    await broadcast({"type": "weather_state", **w})
+            except Exception:
+                pass
         elif any(w in msg_lower for w in ['music','spotify','song','playing','track']):
             await broadcast({"type": "panel_open", "panel": "music"})
+            if SPOTIFY_AVAILABLE:
+                try:
+                    music_data = await asyncio.to_thread(now_playing_structured)
+                    recent = await asyncio.to_thread(recently_played, 5)
+                    queue_data = await asyncio.to_thread(get_queue, 5)
+                    library_data = await asyncio.to_thread(get_library, 20)
+                    await broadcast({"type": "music_state", **music_data, "recent": recent, "queue": queue_data, "library": library_data})
+                except Exception:
+                    pass
         elif any(w in msg_lower for w in ['news','headline','story']):
             await broadcast({"type": "panel_open", "panel": "news"})
+            try:
+                from news import get_headlines_structured as _news_get
+                news = await asyncio.to_thread(_news_get, "general", 5)
+                if news:
+                    await broadcast({"type": "news_state", "news": news})
+            except Exception:
+                pass
 
         # Dispatch GATEWAY and QUEUE actions parsed by brain.py
         for action in get_last_actions():

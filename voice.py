@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
 HZL AI · Voice Stack  (voice.py)
+Platform-aware: auto-detects Windows vs Linux and uses the right audio backend.
+  - Windows: sounddevice + soundfile (laptop mic/speakers)
+  - Linux:   arecord / aplay (ALSA, Pi cluster)
+
 Patched for hazel-v5:
   - Voice ID locked to Uc7anshoV8mdBhDnEZEX (Hazel)
   - start_listening() / stop_listening() hooks for WS mic control
@@ -8,7 +12,9 @@ Patched for hazel-v5:
 """
 
 import os
+import io
 import re
+import platform
 import subprocess
 import tempfile
 import logging
@@ -19,6 +25,14 @@ import requests
 
 log = logging.getLogger(__name__)
 
+PLATFORM = platform.system()  # "Windows" or "Linux"
+
+# ── PLATFORM-SPECIFIC IMPORTS ─────────────────────────────────────────────
+if PLATFORM == "Windows":
+    import sounddevice as sd
+    import soundfile as sf
+    import numpy as np
+
 # ── CONFIG ─────────────────────────────────────────────────────────────────
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID = "Uc7anshoV8mdBhDnEZEX"          # Hazel — DO NOT CHANGE
@@ -26,9 +40,10 @@ ELEVENLABS_MODEL    = "eleven_turbo_v2"
 ELEVENLABS_FORMAT   = "mp3_44100_128"
 
 WHISPER_MODEL_SIZE  = os.environ.get("JARVIS_WHISPER_MODEL", "base")
-MIC_CARD            = os.environ.get("JARVIS_MIC_CARD", "")        # auto-detect if empty
-SPEAKER_CARD        = os.environ.get("JARVIS_SPEAKER_CARD", "plughw:2,0")
+MIC_CARD            = os.environ.get("JARVIS_MIC_CARD", "")        # Linux only
+SPEAKER_CARD        = os.environ.get("JARVIS_SPEAKER_CARD", "plughw:2,0")  # Linux only
 RECORD_SECONDS      = int(os.environ.get("JARVIS_RECORD_SECONDS", "6"))
+SAMPLE_RATE         = 16000  # Whisper expects 16kHz
 
 # Noise / junk filter — phrases too short or meaningless to process
 NOISE_PHRASES = {"you", "thank you", "thanks", "okay", "ok", "uh", "um", "hmm", ""}
@@ -47,7 +62,19 @@ def get_whisper():
 
 # ── MIC DETECTION ──────────────────────────────────────────────────────────
 def detect_mic() -> str:
-    """Return the first USB mic card string, e.g. 'plughw:1,0'."""
+    """Return mic identifier for the current platform."""
+    if PLATFORM == "Windows":
+        # sounddevice uses the system default — return a label, not an ALSA card
+        try:
+            device = sd.query_devices(kind='input')
+            name = device.get('name', 'default')
+            log.info(f"Detected Windows mic: {name}")
+            return name
+        except Exception as e:
+            log.warning(f"Windows mic detection failed: {e}")
+            return "default"
+
+    # Linux / Pi — ALSA detection
     if MIC_CARD:
         return MIC_CARD
     try:
@@ -58,7 +85,6 @@ def detect_mic() -> str:
                 for i, p in enumerate(parts):
                     if p.lower() == "card":
                         card_num = parts[i+1].strip(":")
-                        # grab device
                         dev_num = "0"
                         for j, pp in enumerate(parts):
                             if pp.lower() == "device":
@@ -93,14 +119,32 @@ def stop_listening():
     _listening = False
     log.info("Mic listening stopped")
 
-def transcribe_once() -> str | None:
-    """
-    Record a single utterance and return transcribed text, or None if noise/empty.
-    Called by main.py's listen loop.
-    """
-    mic = detect_mic()
-    wav = tempfile.mktemp(suffix=".wav")
+def _record_windows() -> str | None:
+    """Record from the laptop mic using sounddevice, return path to wav or None."""
+    wav_path = tempfile.mktemp(suffix=".wav")
+    try:
+        log.info(f"Recording {RECORD_SECONDS}s from laptop mic...")
+        audio = sd.rec(
+            int(RECORD_SECONDS * SAMPLE_RATE),
+            samplerate=SAMPLE_RATE,
+            channels=1,
+            dtype='float32',
+        )
+        sd.wait()  # block until recording finishes
+        sf.write(wav_path, audio, SAMPLE_RATE)
+        return wav_path
+    except Exception as e:
+        log.error(f"Windows recording failed: {e}")
+        try:
+            os.remove(wav_path)
+        except OSError:
+            pass
+        return None
 
+def _record_linux() -> str | None:
+    """Record from ALSA mic using arecord, return path to wav or None."""
+    mic = detect_mic()
+    wav_path = tempfile.mktemp(suffix=".wav")
     try:
         subprocess.run([
             "arecord",
@@ -109,10 +153,28 @@ def transcribe_once() -> str | None:
             "-t", "wav",
             "-d", str(RECORD_SECONDS),
             "-q",
-            wav
+            wav_path
         ], check=True, capture_output=True)
+        return wav_path
     except subprocess.CalledProcessError as e:
         log.error(f"arecord failed: {e}")
+        try:
+            os.remove(wav_path)
+        except OSError:
+            pass
+        return None
+
+def transcribe_once() -> str | None:
+    """
+    Record a single utterance and return transcribed text, or None if noise/empty.
+    Called by main.py's listen loop.
+    """
+    if PLATFORM == "Windows":
+        wav = _record_windows()
+    else:
+        wav = _record_linux()
+
+    if wav is None:
         return None
 
     try:
@@ -134,6 +196,44 @@ def transcribe_once() -> str | None:
     log.info(f"STT: {text!r}")
     return text
 
+# ── PLAYBACK HELPERS ──────────────────────────────────────────────────────
+def _play_wav_file(wav_path: str):
+    """Play a wav file using the right backend for this platform."""
+    if PLATFORM == "Windows":
+        data, samplerate = sf.read(wav_path, dtype='float32')
+        sd.play(data, samplerate)
+        sd.wait()
+    else:
+        subprocess.run(
+            ["aplay", "-D", SPEAKER_CARD, "-q", wav_path],
+            check=True, capture_output=True
+        )
+
+def _mp3_to_wav(mp3_path: str, wav_path: str):
+    """Convert mp3 to wav. Uses ffmpeg if available, falls back to soundfile."""
+    # Try ffmpeg first (works on both platforms if installed)
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", mp3_path, "-ar", "44100", "-ac", "2", wav_path],
+            check=True, capture_output=True
+        )
+        return
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+
+    # Fallback: use soundfile (reads mp3 via libsndfile if supported,
+    # otherwise use the io approach with the raw bytes)
+    try:
+        data, samplerate = sf.read(mp3_path)
+        sf.write(wav_path, data, samplerate)
+        return
+    except Exception:
+        pass
+
+    # Last resort on Windows: use the mp3 directly with sounddevice
+    # by reading raw bytes through io — this won't work, so log the error
+    log.error("Cannot convert mp3 to wav — install ffmpeg for best results")
+
 # ── TTS (ELEVENLABS + PIPER FALLBACK) ──────────────────────────────────────
 def speak(text: str):
     """Speak text via ElevenLabs, falling back to Piper if unavailable."""
@@ -141,9 +241,11 @@ def speak(text: str):
     if not clean:
         return
 
-    if ELEVENLABS_API_KEY:
+    # Read key at call time (not import time) so .env loading in main.py works
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "") or ELEVENLABS_API_KEY
+    if api_key:
         try:
-            _speak_elevenlabs(clean)
+            _speak_elevenlabs(clean, api_key)
             return
         except Exception as e:
             log.warning(f"ElevenLabs failed ({e}), falling back to Piper")
@@ -151,12 +253,13 @@ def speak(text: str):
     _speak_piper(clean)
 
 
-def _speak_elevenlabs(text: str):
+def _speak_elevenlabs(text: str, api_key: str = None):
+    key = api_key or os.environ.get("ELEVENLABS_API_KEY", "") or ELEVENLABS_API_KEY
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
     headers = {
         "Accept":       "audio/mpeg",
         "Content-Type": "application/json",
-        "xi-api-key":   ELEVENLABS_API_KEY,
+        "xi-api-key":   key,
     }
     payload = {
         "text":       text,
@@ -177,10 +280,33 @@ def _speak_elevenlabs(text: str):
             for chunk in response.iter_content(chunk_size=4096):
                 if chunk:
                     f.write(chunk)
-        subprocess.run(["ffmpeg", "-y", "-i", mp3, "-ar", "44100", "-ac", "2", wav],
-                       check=True, capture_output=True)
-        subprocess.run(["aplay", "-D", SPEAKER_CARD, "-q", wav],
-                       check=True, capture_output=True)
+
+        if PLATFORM == "Windows":
+            # On Windows, use the start command to play mp3 natively,
+            # or convert to wav and play via sounddevice
+            _mp3_to_wav(mp3, wav)
+            if os.path.exists(wav) and os.path.getsize(wav) > 0:
+                _play_wav_file(wav)
+            else:
+                # Direct mp3 playback via Windows Media Player (blocking)
+                log.info("Playing mp3 via Windows native player")
+                subprocess.run(
+                    ["powershell", "-c",
+                     f"Add-Type -AssemblyName presentationCore; "
+                     f"$p = New-Object System.Windows.Media.MediaPlayer; "
+                     f"$p.Open('{mp3.replace(chr(92), '/')}'); "
+                     f"$p.Play(); Start-Sleep -Milliseconds 100; "
+                     f"while($p.NaturalDuration.HasTimeSpan -eq $false){{Start-Sleep -Milliseconds 100}}; "
+                     f"Start-Sleep -Seconds $p.NaturalDuration.TimeSpan.TotalSeconds; "
+                     f"$p.Close()"],
+                    capture_output=True, timeout=30
+                )
+        else:
+            _mp3_to_wav(mp3, wav)
+            if os.path.exists(wav):
+                _play_wav_file(wav)
+            else:
+                log.error("TTS playback failed — no wav file produced")
     finally:
         for f in (mp3, wav):
             try:
@@ -204,10 +330,7 @@ def _speak_piper(text: str):
             ["piper", "--model", model, "--output_file", wav],
             input=text.encode(), capture_output=True, check=True
         )
-        subprocess.run(
-            ["aplay", "-D", SPEAKER_CARD, "-q", wav],
-            check=True, capture_output=True
-        )
+        _play_wav_file(wav)
     except Exception as e:
         log.error(f"Piper TTS error: {e}")
     finally:
@@ -215,4 +338,5 @@ def _speak_piper(text: str):
             os.remove(wav)
         except OSError:
             pass
+
 listen = transcribe_once

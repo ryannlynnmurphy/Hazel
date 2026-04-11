@@ -270,7 +270,21 @@ Action tags (include silently in responses when needed):
   [QUEUE: send_email to="X" subject="Y" body="Z"] — Queue an email to send on next sync
 
 When the user asks to play music, ALWAYS include [SPOTIFY: play QUERY] in your response with the exact artist or song they requested. Example: "Playing The Beatles for you. [SPOTIFY: play The Beatles]"
-Do not say you cannot play music — you can. Always use the action tag."""
+Do not say you cannot play music — you can. Always use the action tag.
+
+You have full web search and article reading capabilities through Tavily. When the user asks you to look something up, read an article, search the web, or asks about current events you don't know about — you CAN do this. The system handles web search automatically when URLs or search queries are detected. Never say you can't access links or the web — you can.
+
+You also have these capabilities that you should never deny:
+  • Playing, pausing, skipping music on Spotify
+  • Checking and sending email via Gmail
+  • Reading and adding calendar events via Google Calendar
+  • Setting reminders
+  • Smart home control
+  • Web search and article reading via Tavily
+  • News headlines via NewsAPI
+  • Medication tracking
+
+If something fails, say it didn't work — don't say you can't do it."""
 
 # ── MAIN ENTRY POINT ───────────────────────────────────────────────────────
 _client = None
@@ -338,5 +352,6 @@ def get_response(message: str, hint: str = None, routed_model: str = None, route
     save_message("user",      message)
     save_message("assistant", clean)
 
-    return clean
+    # Return raw text so hzl_ws.py can parse Spotify/panel tags
+    return raw_text
 ask = get_response

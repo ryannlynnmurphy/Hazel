@@ -6,6 +6,16 @@ import datetime
 import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Load .env if present (so we don't depend on the shell doing it)
+_env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.exists(_env_file):
+    with open(_env_file) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                os.environ[_k.strip()] = _v.strip()
 from brain import ask, parse_actions
 from voice import listen, speak, detect_mic
 from memory import save_reminder, get_pending_reminders, mark_reminder_fired

@@ -1260,7 +1260,7 @@ const S = {
   library: [],
   recent: [],
 
-  weather: { temp:'58°', feels:'54°', hum:'62%', wind:'11 mph', uv:'3', cond:'Partly cloudy' },
+  weather: { temp:58, feels:54, hum:62, wind:11, uv:3, cond:'Partly cloudy', hourly:[] },
 
   events: [
     { time:'9:00',  name:'Team standup',  sub:'Google Meet · 30 min', accent:'var(--gold)' },
@@ -1607,19 +1607,20 @@ function toggleDevice(id) {
 ─────────────────────────────────────────── */
 function renderWeatherPanel() {
   const w = S.weather;
-  document.getElementById('d-wx-temp').textContent = w.temp;
-  document.getElementById('d-wx-cond').textContent = w.cond;
-  document.getElementById('d-wx-fl').textContent   = w.feels;
-  document.getElementById('d-wx-hu').textContent   = w.hum;
-  document.getElementById('d-wx-wi').textContent   = w.wind;
+  document.getElementById('d-wx-temp').textContent = w.temp + '°';
+  document.getElementById('d-wx-cond').textContent = w.cond || '';
+  document.getElementById('d-wx-fl').textContent   = w.feels + '°';
+  document.getElementById('d-wx-hu').textContent   = w.hum + '%';
+  document.getElementById('d-wx-wi').textContent   = w.wind + ' mph';
   document.getElementById('d-wx-uv').textContent   = w.uv;
 
-  const hours = ['Now','1pm','2pm','3pm','4pm','5pm','6pm','7pm'];
-  const temps  = [58,61,63,62,60,57,54,52];
-  const icons  = ['⛅','🌤','☀️','⛅','🌥','🌥','🌙','🌙'];
-  document.getElementById('d-wx-hourly').innerHTML = hours.map((h,i) =>
-    `<div class="wx-hr"><div class="wx-hr-t">${h}</div><div class="wx-hr-i">${icons[i]}</div><div class="wx-hr-v">${temps[i]}°</div></div>`
-  ).join('');
+  // Use real hourly data from backend if available
+  const hourly = w.hourly || [];
+  if (hourly.length) {
+    document.getElementById('d-wx-hourly').innerHTML = hourly.map(h =>
+      `<div class="wx-hr"><div class="wx-hr-t">${h.label}</div><div class="wx-hr-i">${h.icon}</div><div class="wx-hr-v">${h.temp}°</div></div>`
+    ).join('');
+  }
 }
 
 // Calendar state

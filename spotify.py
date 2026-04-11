@@ -82,8 +82,13 @@ def play(query: str = None) -> str:
             track = next((t for t in tracks if t["name"].lower() in query.lower() or any(a["name"].lower() in query.lower() for a in t["artists"])), tracks[0])
             name   = track["name"]
             artist = track["artists"][0]["name"]
+            album_uri = track.get("album", {}).get("uri")
             log.info(f"Playing track: '{name}' by {artist} (uri={track['uri']})")
-            sp.start_playback(device_id=device_id, uris=[track["uri"]])
+            # Play within album context so Spotify continues to next tracks
+            if album_uri:
+                sp.start_playback(device_id=device_id, context_uri=album_uri, offset={"uri": track["uri"]})
+            else:
+                sp.start_playback(device_id=device_id, uris=[t["uri"] for t in tracks])
             return f"Playing '{name}' by {artist}."
 
         if playlists:
