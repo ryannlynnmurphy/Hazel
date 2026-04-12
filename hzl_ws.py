@@ -33,8 +33,7 @@ from websockets.asyncio.server import ServerConnection
 # Security
 from hzl_security.ws_auth import WSRateLimiter, sanitize_ws_input
 
-# Cluster routing
-from hzl_cluster.integration import get_routing_context, record_routing_outcome, shutdown_integration
+from brain_router import route as route_message
 
 _rate_limiter = WSRateLimiter(max_messages=10, window_seconds=10)
 
@@ -248,67 +247,54 @@ async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
 
 
 async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = None):
+    # Check for /deep and /ultradeep commands
+    force_tier = None
+    if message.strip().startswith("/deep "):
+        force_tier = 4
+        message = message.strip()[6:]
+    elif message.strip().startswith("/ultradeep "):
+        force_tier = 5
+        message = message.strip()[11:]
+    elif message.strip() == "/deep":
+        await broadcast({"type": "response", "text": "Usage: /deep <your question>"})
+        return
+    elif message.strip() == "/ultradeep":
+        await broadcast({"type": "response", "text": "Usage: /ultradeep <your question>"})
+        return
+
     await broadcast({"type": "thinking"})
     log.info(f"Chat -> hint={hint!r} msg={message[:60]!r}")
 
+    # Email-read detection (kept here — specific to reading email bodies)
+    import re as _re_email
+    email_read_match = _re_email.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re_email.IGNORECASE)
+
     try:
-        # Get routing decision from orchestrator (model + max_tokens)
         import time as _time
-        ctx = await get_routing_context(message)
-        log.info(f"Routed -> task={ctx.task_type} model={ctx.model} tokens={ctx.max_tokens} node={ctx.node_hostname or 'local'}")
         t0 = _time.monotonic()
 
-        # Check if message contains a URL -- fetch via Tavily
-        import re as _re2
-        url_match = _re2.search(r'(https?://[^\s]+)', message)
-        # Check if message is a web search request
-        search_match = _re2.search(r'(?:search|look up|google|find out|what is|who is|tell me about)\s+(.+)', message, _re2.IGNORECASE)
-        if url_match:
-            url = url_match.group(1)
-            log.info(f"Fetching article via Tavily: {url}")
-            try:
-                from search import web_search
-                article_content = await asyncio.to_thread(web_search, f"site:{url} full article")
-                if article_content and "error" not in article_content.lower():
-                    augmented = f"{message}\n\n[Article content from Tavily]:\n{article_content}"
-                    response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
-                else:
-                    topic = message.split(' - ')[-1] if ' - ' in message else message
-                    search_result = await asyncio.to_thread(web_search, topic[:100])
-                    augmented = f"{message}\n\n[Related info from web search]:\n{search_result}"
-                    response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
-            except Exception as e:
-                log.warning(f"Tavily fetch failed: {e}")
-                response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
-        elif search_match:
-            query = search_match.group(1).strip()
-            log.info(f"Web search via Tavily: {query}")
-            try:
-                from search import web_search
-                search_result = await asyncio.to_thread(web_search, query)
-                augmented = f"{message}\n\n[Web search results from Tavily]:\n{search_result}"
-                response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
-            except Exception as e:
-                log.warning(f"Tavily search failed: {e}")
-                response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
-        elif _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE):
-            email_read = _re2.search(r'(?:read|summarize|open).*?email.*?from\s+(.+?)(?:\s+about|$)', message, _re2.IGNORECASE)
+        if email_read_match:
             from gmail import get_email_body
-            sender = email_read.group(1).strip()
+            sender = email_read_match.group(1).strip()
             email_body = await asyncio.to_thread(get_email_body, sender)
             augmented = f"{message}\n\n[Email content fetched]:\n{email_body}"
-            response_text = await asyncio.to_thread(get_response, augmented, hint, ctx.model, ctx.max_tokens)
+            response_text, tier_name, tier_type = await asyncio.to_thread(
+                route_message, augmented, hint, force_tier
+            )
         else:
-            response_text = await asyncio.to_thread(get_response, message, hint, ctx.model, ctx.max_tokens)
+            response_text, tier_name, tier_type = await asyncio.to_thread(
+                route_message, message, hint, force_tier
+            )
 
-        # Record success outcome for circuit breaker
         elapsed_ms = (_time.monotonic() - t0) * 1000
-        record_routing_outcome(ctx, success=True, latency_ms=elapsed_ms)
+        log.info(f"Router: {tier_name}/{tier_type} in {elapsed_ms:.0f}ms")
+
         await broadcast({"type": "speaking"})
+
         # Strip action tags for display, keep raw for Spotify/panel parsing below
         import re as _re_clean
         display_text = _re_clean.sub(r'\[[A-Z_]+:[^\]]*\]', '', response_text).strip()
-        await broadcast({"type": "response", "text": display_text})
+        await broadcast({"type": "response", "text": display_text, "tier": tier_name, "tier_type": tier_type})
         
         # Refresh meds UI if medication-related conversation
         med_keywords = ['medication', 'medicine', 'pill', 'take', 'took', 'taking', 'prescription', 'dose', 'vitamin', 'supplement', 'penicillin', 'antibiotic', 'probiotic', 'melatonin']
@@ -488,11 +474,6 @@ async def _handle_chat_inner(ws: ServerConnection, message: str, hint: str = Non
     except Exception as e:
         log.error(f"Brain error: {e}")
         await broadcast({"type": "response", "text": "Something went wrong. Please try again."})
-        # Record failure outcome for circuit breaker
-        try:
-            record_routing_outcome(ctx, success=False)
-        except Exception:
-            pass
     finally:
         await broadcast({"type": "idle"})
 
@@ -722,7 +703,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        asyncio.run(shutdown_integration())
         log.info("Shutdown requested -- goodbye.")
 
 # ── Compatibility aliases for main.py ──
