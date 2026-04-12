@@ -617,6 +617,11 @@ async def push_on_connect(ws):
             log.warning(f"Spotify push failed: {e}")
 
 
+async def push_on_connect_v6(ws):
+    """Push initial state for v6 terminal UI — cards on demand only."""
+    await ws.send(json.dumps({"type": "face", "state": "idle"}))
+
+
 async def handle_connection(ws: ServerConnection):
     """Main handler for each WebSocket connection."""
     CLIENTS.add(ws)
@@ -625,7 +630,8 @@ async def handle_connection(ws: ServerConnection):
 
     try:
         # Push real data to UI on connect
-        asyncio.create_task(push_on_connect(ws))
+        asyncio.create_task(push_on_connect(ws))      # v5 panels
+        asyncio.create_task(push_on_connect_v6(ws))   # v6 face state
         async for raw in ws:
             try:
                 data = json.loads(raw)

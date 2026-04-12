@@ -16,6 +16,20 @@ if os.path.exists(_env_file):
             if _line and not _line.startswith("#") and "=" in _line:
                 _k, _v = _line.split("=", 1)
                 os.environ[_k.strip()] = _v.strip()
+
+# Check Ollama availability for local inference
+try:
+    from ollama_client import is_available, list_models
+    if is_available():
+        models = list_models()
+        print(f"  Ollama: connected ({len(models)} models)")
+        for m in models:
+            print(f"    - {m}")
+    else:
+        print("  Ollama: not running (local tiers unavailable, using Claude)")
+except Exception as e:
+    print(f"  Ollama: check failed ({e})")
+
 from brain import ask, parse_actions
 from voice import listen, speak, detect_mic
 from memory import save_reminder, get_pending_reminders, mark_reminder_fired
