@@ -1,0 +1,12 @@
+---
+description: Hazel/Scatter static UI - LAN hostname, scatter-base, classroom philosophy
+alwaysApply: true
+---
+
+# Hazel / Scatter local UI and classroom
+
+- Static UI in `Hazel/ui/` is served by `python3 -m http.server` (see `start.sh`). New pages must work when opened as `http://<LAN-IP>:8082/...` on phones, not only `localhost`.
+- Use `scatter-base.js` (`SCATTER.wsUrl()`, `SCATTER.openPath()`) for WebSocket and in-app links so hostname follows the page.
+- WebSocket server default bind is `0.0.0.0` via `HZL_WS_HOST`; use `127.0.0.1` only for loopback-locked dev.
+- `classroom.html` is **single-player**; content aligns with `scatter-system/docs/CONFABULATORY_PHILOSOPHY.md` (thermodynamic honesty, local topology, negative capability) - not generic trivia.
+- Avoid hardcoding `http://localhost:8082` in new UI without a `SCATTER` fallback.

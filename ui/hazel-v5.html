@@ -1221,17 +1221,22 @@ body.listening #listen-bars { opacity: 1; }
         <div id="d-task-list" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
       <div class="dash-view" id="view-apps">
-        <div class="sec-label">HZL Applications</div>
+        <div class="sec-label">Scatter Applications</div>
         <div class="app-grid">
-          <div class="app-card" onclick="window.open('http://localhost:8082/arcade.html', '_blank')">
+          <div class="app-card" onclick="SCATTER.openPath('/arcade.html')">
             <div class="app-icon">🎮</div>
-            <div class="app-name">HZL Arcade</div>
+            <div class="app-name">Scatter Arcade</div>
             <div class="app-desc">Retro games • Garrison, Rally, Flyover & more</div>
           </div>
-          <div class="app-card" onclick="window.open('http://localhost:8082/HZL_Academy.html', '_blank')">
+          <div class="app-card" onclick="SCATTER.openPath('/HZL_Academy.html')">
             <div class="app-icon">🎓</div>
-            <div class="app-name">HZL Academy</div>
-            <div class="app-desc">AI-powered learning • Learn anything you want</div>
+            <div class="app-name">Scatter OS guide</div>
+            <div class="app-desc">Read how each integration on this machine actually works</div>
+          </div>
+          <div class="app-card" onclick="SCATTER.openPath('/classroom.html')">
+            <div class="app-icon">✓</div>
+            <div class="app-name">Local praxis</div>
+            <div class="app-desc">Single-player quiz — confabulatory OS literacy + real-world steps</div>
           </div>
         </div>
       </div>
@@ -1242,6 +1247,7 @@ body.listening #listen-bars { opacity: 1; }
 
 </div><!-- /shell -->
 
+<script src="scatter-base.js"></script>
 <script>
 /* ───────────────────────────────────────────
    STATE
@@ -1426,7 +1432,7 @@ function switchTab(tab) {
 ─────────────────────────────────────────── */
 function connectWS() {
   try {
-    S.ws = new WebSocket('ws://localhost:8765');
+    S.ws = new WebSocket(typeof SCATTER !== 'undefined' ? SCATTER.wsUrl() : 'ws://localhost:8765');
     S.ws.onopen  = () => { document.getElementById('state-text').textContent = 'connected'; };
     S.ws.onclose = () => { document.getElementById('state-text').textContent = 'offline'; setTimeout(connectWS, 5000); };
     S.ws.onerror = () => { document.getElementById('state-text').textContent = 'offline'; };

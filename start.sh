@@ -13,6 +13,9 @@ if [ -f "$ENV_FILE" ]; then
   echo "[+] Loaded $ENV_FILE"
 fi
 
+: "${HZL_WS_HOST:=0.0.0.0}"
+export HZL_WS_HOST
+
 echo "[*] Stopping any existing HZL processes..."
 pkill -f "hzl_orchestrator.py" 2>/dev/null && echo "    Stopped hzl_orchestrator.py"
 pkill -f "hzl_ws.py" 2>/dev/null && echo "    Stopped hzl_ws.py"
@@ -48,10 +51,15 @@ echo "    main.py PID: $MAIN_PID"
 
 echo "$ORCH_PID $HTTP_PID $MAIN_PID" > "$PID_FILE"
 echo ""
+LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 echo "-------------------------------------------"
 echo "HZL AI is running."
 echo "  Orchestrator: http://localhost:9000/status"
-echo "  UI:           http://localhost:8082/hazel-v5.html"
+echo "  UI (this machine):  http://localhost:8082/hazel-v5.html"
+if [ -n "$LAN_IP" ]; then
+  echo "  UI (phone/tablet):  http://${LAN_IP}:8082/hazel-v5.html  (same Wi-Fi — not http://localhost on the phone)"
+fi
+echo "  WebSocket:    ws://<same-host-as-browser>:8765"
 echo "  Logs:         tail -f $LOG_DIR/orchestrator.log"
 echo "                tail -f $LOG_DIR/main.log"
 echo "  Stop:         bash $HZL_DIR/stop.sh"

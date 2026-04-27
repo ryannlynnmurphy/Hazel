@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scatter — Local praxis (single player)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1714; --ink2: #4a4540; --muted: #8a8580; --line: #ddd9d0; --bg: #f5f2eb; --card: #fff; --ok: #0f5f3f; --acc: #8b5e3c; --q: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Outfit', system-ui, sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.45; }
+header { padding: 1.25rem 1.25rem 0.5rem; max-width: 42rem; margin: 0 auto; }
+h1 { font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 1.55rem; }
+.lede { font-size: 0.9rem; color: var(--ink2); margin-top: 0.5rem; }
+.paper { font-size: 0.8rem; color: var(--muted); margin-top: 0.75rem; }
+main { max-width: 42rem; margin: 0 auto; padding: 0 1.25rem 3rem; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--q); padding: 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.p-hidden { display: none; }
+.btn { display: inline-block; padding: 0.65rem 1.1rem; border-radius: 8px; font-weight: 600; font-size: 0.95rem; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; width: 100%; text-align: center; margin-top: 0.75rem; }
+.btn-ghost { background: #fff; color: var(--ink); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.opt { display: block; width: 100%; padding: 0.9rem 1rem; margin: 0.45rem 0; border: 1px solid var(--line); border-radius: 8px; background: #faf9f6; text-align: left; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+.opt:hover { background: #f0ece4; }
+.opt.sel { border-color: var(--acc); background: #fdf5ee; }
+.opt.correct { border-color: var(--ok); background: #ecf7f0; }
+.opt.wrong { border-color: #b42318; background: #fef3f2; }
+.timer { font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--muted); float: right; }
+.score { font-size: 0.9rem; color: var(--ink2); margin-bottom: 0.5rem; }
+.badge { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--acc); margin-bottom: 0.4rem; }
+.learn { margin-top: 0.9rem; padding: 0.75rem; background: #f0ece4; border-radius: 6px; font-size: 0.88rem; color: var(--ink2); }
+input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid var(--line); border-radius: 6px; font: inherit; margin-top: 0.5rem; }
+label.check { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.9rem; margin-top: 0.75rem; cursor: pointer; }
+h2.q { font-family: 'Newsreader', serif; font-size: 1.2rem; font-weight: 500; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Local praxis (single player)</h1>
+  <p class="lede">Confabulatory philosophy, compressed: the model may <em>perform</em> plausibility; you supply the real world. This run mixes quick checks with steps that only count if you actually do them in the room. Nothing leaves this page.</p>
+  <p class="paper">Architecture bridge (same ideas as the paper): <em>governance is an effect of topology</em> — local mesh vs cloud, energy as a first-class honest estimate, and <em>negative capability</em> (time held open for understanding) as load-bearing, not “slow is bad.”</p>
+</header>
+<main>
+  <div id="screen-start" class="panel">
+    <span class="badge">Scatter classroom node</span>
+    <h2 class="q">How it works</h2>
+    <p style="font-size:0.92rem;color:var(--ink2)">Multiples choice: one best answer, then a short <strong>why</strong>. <strong>Praxis</strong> steps: you confirm on your honor. No accounts, no server round — all single-player, like Kahoot for one, on your machine.</p>
+    <p style="font-size:0.85rem;color:var(--muted);margin-top:0.6rem">Open this from the <strong>classroom computer’s</strong> LAN URL on phones (not <code>localhost</code> — that is always the device in your hand).</p>
+    <button type="button" class="btn" id="btn-start">Start</button>
+  </div>
+  <div id="screen-play" class="p-hidden"></div>
+  <div id="screen-end" class="p-hidden panel"></div>
+</main>
+<script>
+(function () {
+  /* Rounds: mc = verify ideas from CONFABULATORY_PHILOSOPHY / OS guide; praxis = real world */
+  var ROUNDS = [
+    { type: "mc", q: "A model that sounds confident might still be wrong. Treating that performance of plausibility as if it were guaranteed ground truth is the failure mode this stack names when it talks about", options: [
+      { t: "confabulation (surface without guaranteed ground in the same breath)", ok: true },
+      { t: "compression ratio", ok: false },
+      { t: "Unicode normalization", ok: false },
+      { t: "GPU thermal paste", ok: false }
+    ], learn: "Constraint 1 in the architecture doc: do not present a single model line as the whole truth for teaching. Critique can be in-dataset; surfacing it is the alignment move." },
+    { type: "praxis", title: "Thermodynamic honesty", inst: "Touch something on the machine that runs this page (chassis, power brick, or screen bezel). Type one word naming what you touched. Empty answer = skip.", input: "word" },
+    { type: "mc", q: "A joule or watt·second label shown with a leading ~ means", options: [
+      { t: "the number is an estimate or incomplete, not a confident decimal you should trust blindly", ok: true },
+      { t: "the model is 100% sure", ok: false },
+      { t: "cloud is always greener on screen", ok: false },
+      { t: "delete your data", ok: false }
+    ], learn: "Lush green for estimates was walked back: discipline in UI matches discipline about physics you have not yet metered." },
+    { type: "mc", q: "“Steerability as proximity” predicts that, other things equal, people report more control when inference runs on", options: [
+      { t: "hardware in the room (Pi, phone, laptop you can unplug)", ok: true },
+      { t: "only a datacenter in another jurisdiction", ok: false },
+      { t: "a bigger logo", ok: false },
+      { t: "faster marketing copy", ok: false }
+    ], learn: "Topology changes what governance questions are even the right questions." },
+    { type: "praxis", title: "Negative capability (short)", inst: "Set a 30s timer. Until it rings, do not answer the next screen — just wait with this tab visible. Check below when the timer has actually finished.", honor: true },
+    { type: "mc", q: "Why does “localhost” in the address bar on your <em>phone</em> fail to reach a Scatter server running on a classroom PC?", options: [
+      { t: "localhost is always the device showing the page — the phone talks to itself", ok: true },
+      { t: "phones block education", ok: false },
+      { t: "HTTP is illegal on Android", ok: false },
+      { t: "Scatter forbids mobile", ok: false }
+    ], learn: "Use the host machine’s LAN IP (or similar) so hostname matches the room." },
+    { type: "mc", q: "A network import not on the project’s allowlist, with no surfaced disclosure, is", options: [
+      { t: "off-spec for a sovereignty/telemetry story — every exit should be legible", ok: true },
+      { t: "automatically safe if HTTPS", ok: false },
+      { t: "required for fonts", ok: false },
+      { t: "fine if the user is a minor", ok: false }
+    ], learn: "Sovereignty as infrastructure: you want packet-level honesty, not a vibe." },
+    { type: "praxis", title: "Object outside the graph", inst: "Name one object in the physical room that is not part of the computer (type a short phrase).", input: "phrase" },
+    { type: "mc", q: "“Teaching” in this philosophy should not default-route the same as casual chat, because the risk model is different: by default, learning paths should bias toward", options: [
+      { t: "local/operator-controlled stack where the district can see and revoke", ok: true },
+      { t: "the fastest cloud model always", ok: false },
+      { t: "lowest price only", ok: false },
+      { t: "one-shot streaming answers for speed", ok: false }
+    ], learn: "Default route is a child-protection and consent surface, not a performance tweak." }
+  ];
+
+  var state = { i: 0, score: 0, praxis: 0, sel: null, tEnd: 0, tId: null };
+
+  function el(id) { return document.getElementById(id); }
+  function showStart() { el("screen-start").classList.remove("p-hidden"); el("screen-play").classList.add("p-hidden"); el("screen-end").classList.add("p-hidden"); }
+  function qTimerStart(sec, cb) {
+    state.tEnd = Date.now() + sec * 1000;
+    if (state.tId) clearInterval(state.tId);
+    state.tId = setInterval(function () {
+      var remain = Math.max(0, Math.ceil((state.tEnd - Date.now()) / 1000));
+      var node = document.getElementById("q-timer");
+      if (node) node.textContent = remain + "s";
+      if (remain === 0) {
+        clearInterval(state.tId);
+        state.tId = null;
+        var f = el("mc-footer");
+        if (f && f.dataset && f.dataset.done) return;
+        if (cb) cb();
+      }
+    }, 200);
+  }
+
+  function renderMc(r) {
+    var html = '<div class="panel"><span class="badge">Question ' + (state.i + 1) + " / " + ROUNDS.length + '</span><div class="score">Points so far: ' + state.score + "</div>";
+    html += '<span class="timer" id="q-timer">25s</span><h2 class="q">' + escapeHtml(r.q) + "</h2>";
+    r.options.forEach(function (o, j) {
+      html += '<button type="button" class="opt" data-j="' + j + '">' + escapeHtml(o.t) + "</button>";
+    });
+    html += '<div id="mc-footer"></div></div>';
+    el("screen-play").innerHTML = html;
+    r.options.forEach(function (o, j) {
+      document.querySelector('.opt[data-j="' + j + '"]').addEventListener("click", function () { pickMc(r, j); });
+    });
+    qTimerStart(25, function () { if (el("mc-footer") && !el("mc-footer").dataset.done) pickMc(r, -1, true); });
+  }
+
+  function pickMc(r, j, timeup) {
+    var foot = el("mc-footer");
+    if (foot && foot.dataset.done) return;
+    if (state.tId) { clearInterval(state.tId); state.tId = null; }
+    if (foot) foot.dataset.done = "1";
+    var options = r.options;
+    for (var k = 0; k < options.length; k++) {
+      var b = document.querySelector('.opt[data-j="' + k + '"]');
+      if (!b) continue;
+      b.disabled = true;
+      if (options[k].ok) b.classList.add("correct");
+      if (k === j && !options[k].ok) b.classList.add("wrong");
+    }
+    if (!timeup && j >= 0 && options[j] && options[j].ok) state.score += 10;
+    var le = (r.learn) ? ('<div class="learn"><strong>Why it matters</strong> — ' + escapeHtml(r.learn) + "</div>") : "";
+    var nextBtn = '<button type="button" class="btn" id="btn-next">Continue</button>';
+    if (foot) foot.innerHTML = le + nextBtn;
+    document.getElementById("btn-next").addEventListener("click", nextRound);
+  }
+
+  function renderPraxis(r) {
+    var html = '<div class="panel"><span class="badge">Praxis ' + (state.i + 1) + " / " + ROUNDS.length + "</span>";
+    html += '<h2 class="q">' + escapeHtml(r.title) + "</h2>";
+    html += "<p style=font-size:0.9rem;color:var(--ink2)>" + escapeHtml(r.inst) + "</p>";
+    if (r.honor) {
+      html += '<label class="check"><input type="checkbox" id="honor" /> I waited the full 30 seconds before checking this (honor system).</label>';
+    }
+    if (r.input) {
+      html += "<input type=\"text\" id=\"p-in\" placeholder=\"Type here…\" autocomplete=\"off\" />";
+    }
+    html += '<button type="button" class="btn" id="p-done">Log step &amp; continue</button></div>';
+    el("screen-play").innerHTML = html;
+    el("p-done").addEventListener("click", function () {
+      var ok = true;
+      if (r.honor) ok = el("honor") && el("honor").checked;
+      if (r.input) ok = ok && (el("p-in").value && el("p-in").value.trim().length > 0);
+      if (ok) { state.praxis += 1; state.score += 5; }
+      nextRound();
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function nextRound() {
+    state.i += 1;
+    if (state.i >= ROUNDS.length) { endRun(); return; }
+    var r = ROUNDS[state.i];
+    if (r.type === "mc") renderMc(r);
+    else if (r.type === "praxis") renderPraxis(r);
+  }
+
+  function endRun() {
+    el("screen-play").classList.add("p-hidden");
+    el("screen-end").classList.remove("p-hidden");
+    el("screen-end").innerHTML =
+      '<span class="badge">Run complete</span><h2 class="q">Score</h2><p>Points (including praxis): <strong>' +
+      state.score +
+      "</strong> · Praxis steps taken: " +
+      state.praxis +
+      "</p><p class=lede>Confabulatory move: the screen did not <em>verify</em> your praxis. You brought the world in, or you did not. That honesty is the same discipline as marking estimates with <strong>~</strong> for watts.</p><p class=paper style=margin-top:0.6rem>Full architectural bridge: <code>scatter-system/docs/CONFABULATORY_PHILOSOPHY.md</code> (in the repo).</p><button type=button class=btn id=btn-again>Play again</button>";
+    el("btn-again").addEventListener("click", function () {
+      if (state.tId) { clearInterval(state.tId); state.tId = null; }
+      state = { i: 0, score: 0, praxis: 0, sel: null, tEnd: 0, tId: null };
+      el("screen-end").classList.add("p-hidden");
+      el("screen-play").innerHTML = "";
+      el("screen-start").classList.remove("p-hidden");
+    });
+  }
+
+  el("btn-start").addEventListener("click", function () {
+    el("screen-start").classList.add("p-hidden");
+    el("screen-play").classList.remove("p-hidden");
+    state.i = 0;
+    el("screen-play").classList.remove("p-hidden");
+    var r0 = ROUNDS[0];
+    if (r0.type === "mc") renderMc(r0);
+    else renderPraxis(r0);
+  });
+})();
+</script>
+</body>
+</html>

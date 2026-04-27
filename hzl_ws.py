@@ -696,7 +696,9 @@ async def handle_connection(ws: ServerConnection):
 
 
 async def main():
-    host = os.getenv("HZL_WS_HOST", "localhost")
+    # Default 0.0.0.0 so phones on the LAN can open http://<this-host>:8082/ and connect to WS on same hostname.
+    # Set HZL_WS_HOST=127.0.0.1 to lock to loopback only.
+    host = os.getenv("HZL_WS_HOST", "0.0.0.0")
     port = int(os.getenv("HZL_WS_PORT", "8765"))
 
     log.info(f"HZL WebSocket server starting on ws://{host}:{port}")

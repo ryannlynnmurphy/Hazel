@@ -766,6 +766,7 @@ body::after {
   <button id="mic-btn" title="Voice input">♦</button>
 </div>
 
+<script src="scatter-base.js"></script>
 <script>
 /* ─── FACES ─── */
 const FACES = {
@@ -1153,7 +1154,7 @@ function connect() {
     try { ws.close(); } catch(e) {}
   }
 
-  ws = new WebSocket('ws://localhost:8765');
+  ws = new WebSocket(typeof SCATTER !== 'undefined' ? SCATTER.wsUrl() : 'ws://localhost:8765');
 
   ws.onopen = () => {
     clearTimeout(reconnectTimer);

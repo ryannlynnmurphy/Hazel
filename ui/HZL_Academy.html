@@ -3,218 +3,219 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HZL Academy</title>
+<title>Scatter OS — Learn the system</title>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-thumb{background:#DDD9D0;border-radius:3px}
-input:focus,textarea:focus{border-color:#1A1714!important;outline:none}
+input:focus{border-color:#1A1714!important;outline:none}
 button{cursor:pointer;border:none;background:none}
-button:disabled{opacity:.5;cursor:not-allowed}
-body{font-family:'Outfit',system-ui,sans-serif;background:#F5F2EB;color:#1A1714}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:fadeIn .2s ease}
-.modal-content{background:#FFF;border-radius:12px;padding:28px;max-width:500px;width:100%;box-shadow:0 4px 16px rgba(0,0,0,.07);animation:fadeIn .3s ease}
-.spinner{display:inline-block;width:20px;height:20px;border:2px solid #EDEAE3;border-top-color:#1A1714;border-radius:50%;animation:spin .6s linear infinite}
+body{font-family:'Outfit',system-ui,sans-serif;background:#F5F2EB;color:#1A1714;min-height:100vh}
 </style>
 </head>
 <body>
-<div id="app">Loading HZL Academy...</div>
+<div id="app">Loading…</div>
 <script>
-const T={bg:"#F5F2EB",fg:"#FFF",fg2:"#EDEAE3",bd:"#DDD9D0",bdL:"#EBE8E1",tx:"#1A1714",tx2:"#6B6560",txM:"#A09A92",acc:"#8B5E3C",accL:"#FDF5EE",accD:"#5E3A1E",ok:"#0F7B4F",okL:"#ECFDF5",okBd:"#B0E6CE",err:"#B42318",errL:"#FEF3F2",errBd:"#FECACA",gold:"#C47F17",ff:"'Newsreader',Georgia,serif",fs:"'Outfit',system-ui,sans-serif",r:12,rs:8,sh:"0 1px 3px rgba(0,0,0,.04)",shM:"0 4px 16px rgba(0,0,0,.07)"};
+/**
+ * Scatter OS Guide — teaches what each part of the local assistant does.
+ * No XP, no minigames, no external K–12 catalog: just computer literacy for
+ * the modules you enable on this machine.
+ */
+const T={bg:"#F5F2EB",fg:"#FFF",fg2:"#EDEAE3",bd:"#DDD9D0",bdL:"#EBE8E1",tx:"#1A1714",tx2:"#6B6560",txM:"#A09A92",acc:"#8B5E3C",ff:"'Newsreader',Georgia,serif",fs:"'Outfit',system-ui,sans-serif",r:12,rs:8,sh:"0 1px 3px rgba(0,0,0,.04)"};
 
-const DB=[
-{cat:"Business",icon:"briefcase",subjects:[
-{id:"ba",title:"Business Analytics",tag:"ANALYTICS",desc:"Data-driven decisions.",src:"MIT OCW",lic:"CC BY 4.0",lessons:[{t:"Descriptive",d:"Dashboards."},{t:"Predictive",d:"Forecasting."},{t:"A/B Testing",d:"Experiments."},{t:"SQL for BI",d:"Querying."},{t:"Storytelling",d:"Narrative."}]},
-{id:"ent",title:"Entrepreneurship",tag:"STARTUP",desc:"Idea to company.",src:"Saylor",lic:"CC BY 4.0",lessons:[{t:"Validation",d:"MVPs, interviews."},{t:"Models",d:"Canvas, revenue."},{t:"Fundraising",d:"Angels, VCs, pitch."},{t:"Go-to-Market",d:"Launch, channels."},{t:"Scaling",d:"Hiring, culture."}]},
-{id:"fin",title:"Finance",tag:"FIN",desc:"Markets and valuation.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Statements",d:"Income, balance, cash."},{t:"Time Value",d:"PV, FV."},{t:"Investments",d:"Stocks, bonds."},{t:"Corporate",d:"WACC, NPV."},{t:"Personal",d:"Budgeting, retirement."}]},
-{id:"mkt",title:"Marketing",tag:"MKTG",desc:"Strategy and growth.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Fundamentals",d:"4 Ps, segmentation."},{t:"Digital",d:"SEO, social."},{t:"Brand",d:"Equity, storytelling."},{t:"Analytics",d:"KPIs, A/B testing."},{t:"Growth",d:"Funnels, retention."}]},
-{id:"pm",title:"Project Management",tag:"PM",desc:"Delivering projects.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Lifecycle",d:"Init to closure."},{t:"Scope",d:"WBS, Gantt."},{t:"Agile",d:"Scrum, kanban."},{t:"Risk",d:"ID, mitigation."},{t:"Communication",d:"Stakeholders."}]}
-]},
-{cat:"Creative Arts",icon:"palette",subjects:[
-{id:"cw",title:"Creative Writing",tag:"WRITING",desc:"Fiction, poetry, craft.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Structure",d:"Three acts."},{t:"Characters",d:"Arc, dialogue."},{t:"Voice",d:"POV, narrator."},{t:"World-Building",d:"Settings, logic."},{t:"Revision",d:"Editing, feedback."}]},
-{id:"gm",title:"Game Design",tag:"GAMES",desc:"Interactive mechanics.",src:"MIT Game Lab",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Mechanics",d:"Rules, loops."},{t:"Level Design",d:"Pacing."},{t:"Narrative",d:"Environmental storytelling."},{t:"Prototyping",d:"Testing, iteration."},{t:"Balance",d:"Economy, difficulty."}]},
-{id:"gd",title:"Graphic Design",tag:"DESIGN",desc:"Visual communication.",src:"OER Commons",lic:"CC BY-SA 4.0",lessons:[{t:"Principles",d:"Balance, contrast."},{t:"Typography",d:"Pairing, hierarchy."},{t:"Color",d:"Harmonies, palettes."},{t:"Layout",d:"Grids, whitespace."},{t:"Brand",d:"Logos, guides."},{t:"Production",d:"Print vs digital."}]},
-{id:"mp",title:"Music Production",tag:"MUSIC",desc:"Create, mix, master.",src:"Berklee",lic:"CC BY 4.0",lessons:[{t:"DAW",d:"Interface, routing."},{t:"Theory",d:"Scales, chords."},{t:"Sound Design",d:"Synthesis."},{t:"Recording",d:"Mics, gain."},{t:"Mixing",d:"EQ, compression."},{t:"Mastering",d:"Loudness."}]},
-{id:"ph",title:"Photography",tag:"PHOTO",desc:"Technical + artistic.",src:"OER Commons",lic:"CC BY-SA 4.0",lessons:[{t:"Exposure",d:"Aperture, shutter, ISO."},{t:"Composition",d:"Thirds, lines."},{t:"Light",d:"Natural, golden hour."},{t:"Lenses",d:"Focal, DoF."},{t:"Post",d:"RAW, grading."}]},
-{id:"ux",title:"UI/UX Design",tag:"UX",desc:"User-centered design.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Research",d:"Personas, journeys."},{t:"IA",d:"Sitemaps, navigation."},{t:"Prototyping",d:"Wireframes, interactive."},{t:"Systems",d:"Components, tokens."},{t:"Testing",d:"Usability, iteration."},{t:"Accessibility",d:"WCAG, inclusive."}]},
-{id:"vid",title:"Video Production",tag:"VIDEO",desc:"Concept to cut.",src:"OER Commons",lic:"CC BY-SA 4.0",lessons:[{t:"Pre-Production",d:"Script, storyboard."},{t:"Camera",d:"Exposure, movement."},{t:"Light & Audio",d:"Three-point, mics."},{t:"Editing",d:"Cuts, pacing."},{t:"Post",d:"Color, sound."},{t:"Export",d:"Codecs, platforms."}]}
-]},
-{cat:"Data Science & AI",icon:"brain",subjects:[
-{id:"ai",title:"AI Fundamentals",tag:"AI",desc:"Search to LLMs.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"What Is AI?",d:"History, types."},{t:"Search",d:"BFS, DFS, A*."},{t:"NLP",d:"Embeddings, transformers."},{t:"Vision",d:"CNNs, detection."},{t:"RL",d:"Q-learning, policy."},{t:"Ethics",d:"Bias, alignment."}]},
-{id:"ais",title:"AI Storytelling",tag:"AI STORY",desc:"AI as creative partner.",src:"MIT Media Lab",lic:"CC BY 4.0",lessons:[{t:"AI as Partner",d:"Co-authoring workflows."},{t:"Prompt Craft",d:"Voice, tone control."},{t:"Worldbuilding",d:"Lore, consistency."},{t:"Interactive Fiction",d:"Choices, Twine/Ink."},{t:"Dialogue",d:"Voice, subtext."},{t:"Editing AI",d:"Humanizing output."},{t:"Ethics",d:"Attribution, integrity."}]},
-{id:"ds2",title:"Data Science",tag:"DATA",desc:"Data to insight.",src:"Kaggle",lic:"CC BY 4.0",lessons:[{t:"Exploration",d:"Loading, inspecting."},{t:"Cleaning",d:"Missing values."},{t:"EDA",d:"Distributions, correlations."},{t:"Visualization",d:"matplotlib, seaborn."},{t:"Statistics",d:"Probability, testing."},{t:"Regression",d:"Linear, logistic."}]},
-{id:"dl",title:"Deep Learning",tag:"DL",desc:"Neural networks.",src:"fast.ai",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Architecture",d:"Layers, activations."},{t:"Training",d:"Loss, optimizers."},{t:"CNNs",d:"Convolution, transfer."},{t:"RNNs",d:"Sequences, LSTMs."},{t:"Transformers",d:"Attention."},{t:"Generative",d:"GANs, diffusion."}]},
-{id:"ml",title:"Machine Learning",tag:"ML",desc:"Learning from data.",src:"Stanford",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Supervised",d:"Regression, classification."},{t:"Ensembles",d:"Random forests, boosting."},{t:"Neural Nets",d:"Perceptrons, backprop."},{t:"Unsupervised",d:"Clustering, PCA."},{t:"Evaluation",d:"CV, metrics."},{t:"Deployment",d:"Pipelines, APIs."}]}
-]},
-{cat:"Engineering",icon:"wrench",subjects:[
-{id:"ee",title:"Electrical Engineering",tag:"EE",desc:"Circuits, signals.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Circuits",d:"Ohm's law."},{t:"DC",d:"Kirchhoff."},{t:"AC",d:"Impedance."},{t:"Semiconductors",d:"Diodes."},{t:"Digital",d:"Gates, Boolean."}]},
-{id:"me",title:"Mechanical Engineering",tag:"ME",desc:"Design, thermo.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Statics",d:"Forces."},{t:"Dynamics",d:"Energy."},{t:"Thermo",d:"Laws."},{t:"Fluids",d:"Bernoulli."},{t:"Materials",d:"Stress, strain."}]}
-]},
-{cat:"Health",icon:"heart",subjects:[
-{id:"anat",title:"Anatomy",tag:"A+P",desc:"Body structure.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Organization",d:"Cells, tissues."},{t:"Skeletal",d:"Bones, joints."},{t:"Cardio",d:"Heart, vessels."},{t:"Nervous",d:"CNS, PNS."},{t:"Respiratory",d:"Gas exchange."},{t:"Endocrine",d:"Hormones."}]},
-{id:"nutr",title:"Nutrition",tag:"NUTR",desc:"Food and health.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Macros",d:"Carbs, protein, fat."},{t:"Micros",d:"Vitamins, minerals."},{t:"Digestion",d:"GI, absorption."},{t:"Disease",d:"Heart, diabetes."},{t:"Evidence",d:"Studies, myths."}]}
-]},
-{cat:"Humanities",icon:"globe2",subjects:[
-{id:"econ",title:"Economics",tag:"ECON",desc:"Markets and policy.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Supply/Demand",d:"Equilibrium."},{t:"Markets",d:"Competition."},{t:"Macro",d:"GDP, inflation."},{t:"Policy",d:"Monetary, fiscal."},{t:"Behavioral",d:"Nudges."}]},
-{id:"edu",title:"Education",tag:"EDU",desc:"Teaching and learning.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Theories",d:"Constructivism."},{t:"Design",d:"ADDIE."},{t:"Assessment",d:"Rubrics."},{t:"Management",d:"Engagement."},{t:"Ed-Tech",d:"LMS, tools."}]},
-{id:"phil",title:"Philosophy",tag:"PHIL",desc:"Knowledge, ethics.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Branches",d:"Inquiry."},{t:"Epistemology",d:"Truth."},{t:"Ethics",d:"Utilitarian, Kant."},{t:"Metaphysics",d:"Free will."},{t:"Logic",d:"Fallacies."}]},
-{id:"psy",title:"Psychology",tag:"PSYCH",desc:"Mind and behavior.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Methods",d:"Design, ethics."},{t:"Biological",d:"Neurons, brain."},{t:"Learning",d:"Conditioning."},{t:"Memory",d:"Encoding."},{t:"Social",d:"Conformity."},{t:"Disorders",d:"Treatment."}]},
-{id:"hist",title:"World History",tag:"HIST",desc:"Civilizations.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Ancient",d:"Greece, Rome."},{t:"Medieval",d:"Feudalism."},{t:"Revolutions",d:"American, French."},{t:"20th Century",d:"World Wars."},{t:"Modern",d:"Globalization."}]}
-]},
-{cat:"Mathematics",icon:"sigma",subjects:[
-{id:"calc",title:"Calculus",tag:"CALC",desc:"Limits, derivatives, integrals.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Limits",d:"Evaluation."},{t:"Derivatives",d:"Rules, chain."},{t:"Applications",d:"Optimization."},{t:"Integrals",d:"FTC."},{t:"Techniques",d:"By parts."},{t:"Series",d:"Taylor."}]},
-{id:"la2",title:"Linear Algebra",tag:"LINALG",desc:"Vectors, matrices.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Vectors",d:"Combinations."},{t:"Matrices",d:"Inverse."},{t:"Transformations",d:"Rank."},{t:"Eigen",d:"Values."},{t:"SVD",d:"Applications."}]},
-{id:"stats",title:"Statistics",tag:"STATS",desc:"Data analysis.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Descriptive",d:"Mean, SD."},{t:"Probability",d:"Bayes."},{t:"Distributions",d:"Normal, binomial."},{t:"Testing",d:"p-values."},{t:"Regression",d:"Linear."}]}
-]},
-{cat:"Programming",icon:"code",subjects:[
-{id:"cpp",title:"C++",tag:"C++",desc:"Systems programming.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Fundamentals",d:"Types, control flow."},{t:"Pointers",d:"Memory, RAII."},{t:"OOP",d:"Classes, inheritance."},{t:"STL",d:"Vectors, maps."},{t:"Modern",d:"Smart pointers, lambdas."}]},
-{id:"ds",title:"Data Structures",tag:"DS",desc:"Efficient data organization.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Arrays & Lists",d:"Linked lists."},{t:"Stacks & Queues",d:"LIFO/FIFO."},{t:"Trees",d:"BST, traversals."},{t:"Hash Tables",d:"Hashing, collisions."},{t:"Graphs",d:"Adjacency, algorithms."}]},
-{id:"go",title:"Go",tag:"GO",desc:"Cloud programming.",src:"Go Docs",lic:"CC BY 4.0",lessons:[{t:"Basics",d:"Variables, flow."},{t:"Functions",d:"Returns, closures."},{t:"Structs",d:"Types, interfaces."},{t:"Goroutines",d:"Channels, concurrency."},{t:"Packages",d:"Modules, testing."}]},
-{id:"web",title:"HTML & CSS",tag:"WEB",desc:"Web structure and style.",src:"MDN",lic:"CC BY 4.0",lessons:[{t:"HTML",d:"Semantic, forms."},{t:"CSS Basics",d:"Selectors, box model."},{t:"Layout",d:"Flexbox, Grid."},{t:"Responsive",d:"Media queries."},{t:"Animation",d:"Transitions, keyframes."},{t:"Modern CSS",d:"Variables, calc."}]},
-{id:"java",title:"Java",tag:"JAVA",desc:"Enterprise OOP.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Syntax",d:"Types, operators."},{t:"OOP",d:"Classes, inheritance."},{t:"Collections",d:"ArrayList, HashMap."},{t:"Interfaces",d:"Abstract, polymorphism."},{t:"Exceptions",d:"Try/catch."},{t:"I/O",d:"File reading."}]},
-{id:"js",title:"JavaScript",tag:"JS",desc:"Language of the web.",src:"freeCodeCamp",lic:"CC BY 4.0",lessons:[{t:"Variables",d:"let/const, types."},{t:"Functions",d:"Arrows, closures."},{t:"Arrays & Objects",d:"Methods, destructuring."},{t:"DOM",d:"querySelector, events."},{t:"Async",d:"Promises, async/await."},{t:"ES6+",d:"Modules, template literals."}]},
-{id:"py",title:"Python",tag:"PY",desc:"General-purpose programming.",src:"freeCodeCamp",lic:"CC BY 4.0",lessons:[{t:"Variables & Types",d:"Ints, strings, booleans."},{t:"Control Flow",d:"if/else, loops."},{t:"Collections",d:"Lists, dicts, sets."},{t:"Functions",d:"Params, lambda, scope."},{t:"File I/O",d:"Read, write, try/except."},{t:"OOP",d:"Classes, inheritance."},{t:"Modules",d:"import, pip."}]},
-{id:"rust",title:"Rust",tag:"RUST",desc:"Memory-safe systems.",src:"Rust Book",lic:"MIT",lessons:[{t:"Ownership",d:"Rules, borrowing."},{t:"Types",d:"Structs, enums, matching."},{t:"Errors",d:"Result, ? operator."},{t:"Traits",d:"Generics, bounds."},{t:"Concurrency",d:"Threads, channels."}]},
-{id:"sql",title:"SQL",tag:"SQL",desc:"Database querying.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"SELECT",d:"WHERE, ORDER BY."},{t:"JOINs",d:"Inner, left, right."},{t:"Aggregation",d:"GROUP BY, HAVING."},{t:"Design",d:"Normalization, keys."},{t:"Advanced",d:"CTEs, window functions."},{t:"Performance",d:"Indexes, EXPLAIN."}]},
-{id:"ts",title:"TypeScript",tag:"TS",desc:"Typed JavaScript.",src:"TS Handbook",lic:"Apache 2.0",lessons:[{t:"Types",d:"Annotations, inference."},{t:"Interfaces",d:"Shapes, unions."},{t:"Generics",d:"Functions, constraints."},{t:"Advanced",d:"Mapped, utility types."},{t:"Modules",d:"Import/export."},{t:"React",d:"Props, hooks typing."}]}
-]},
-{cat:"Sciences",icon:"flask",subjects:[
-{id:"astro",title:"Astronomy",tag:"ASTRO",desc:"Stars, cosmos.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Solar System",d:"Planets."},{t:"Stars",d:"Life cycle."},{t:"Galaxies",d:"Dark matter."},{t:"Cosmology",d:"Big Bang."}]},
-{id:"bio",title:"Biology",tag:"BIO",desc:"Molecules to ecosystems.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Cells",d:"Organelles."},{t:"DNA",d:"Replication, expression."},{t:"Evolution",d:"Natural selection."},{t:"Ecology",d:"Food webs."},{t:"Human Systems",d:"Cardio, nervous."},{t:"Molecular",d:"Proteins."}]},
-{id:"chem",title:"Chemistry",tag:"CHEM",desc:"Matter and reactions.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Atoms",d:"Structure, orbitals."},{t:"Bonding",d:"Ionic, covalent."},{t:"Stoichiometry",d:"Moles."},{t:"Reactions",d:"Kinetics, equilibrium."},{t:"Acids",d:"pH, buffers."}]},
-{id:"env",title:"Environmental Science",tag:"ENV",desc:"Sustainability.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Systems",d:"Spheres, cycles."},{t:"Climate",d:"Change, evidence."},{t:"Biodiversity",d:"Conservation."},{t:"Energy",d:"Renewables."},{t:"Sustainability",d:"SDGs."}]},
-{id:"neuro",title:"Neuroscience",tag:"NEURO",desc:"Brain and behavior.",src:"MIT OCW",lic:"CC BY-NC-SA 4.0",lessons:[{t:"Neurons",d:"Action potentials."},{t:"Brain",d:"Regions, cortex."},{t:"Sensory",d:"Vision, hearing."},{t:"Memory",d:"LTP."},{t:"Disorders",d:"Treatment."}]},
-{id:"phys",title:"Physics",tag:"PHYS",desc:"Fundamental laws.",src:"OpenStax",lic:"CC BY 4.0",lessons:[{t:"Kinematics",d:"Motion."},{t:"Newton",d:"Forces."},{t:"Energy",d:"Conservation."},{t:"Waves",d:"Sound, light."},{t:"E&M",d:"Circuits."}]}
-]},
-{cat:"Technology",icon:"server",subjects:[
-{id:"cloud",title:"Cloud Computing",tag:"CLOUD",desc:"Cloud architecture.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Fundamentals",d:"IaaS/PaaS/SaaS."},{t:"Compute",d:"VMs, containers."},{t:"Networking",d:"VPC, LB."},{t:"Serverless",d:"FaaS."},{t:"CI/CD",d:"Pipelines."}]},
-{id:"sec",title:"Cybersecurity",tag:"SEC",desc:"Defending systems.",src:"NIST",lic:"CC BY 4.0",lessons:[{t:"Fundamentals",d:"CIA triad."},{t:"Network",d:"Firewalls, VPN."},{t:"Crypto",d:"Symmetric, asymmetric."},{t:"Web",d:"OWASP, XSS."},{t:"IR",d:"Detection, recovery."},{t:"IAM",d:"MFA, zero trust."}]},
-{id:"devops",title:"DevOps",tag:"DEVOPS",desc:"Delivery culture.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Culture",d:"CALMS."},{t:"Git",d:"Branching."},{t:"Docker",d:"Containers."},{t:"CI/CD",d:"Pipelines."},{t:"Monitoring",d:"Metrics, alerts."}]}
-]},
-{cat:"World Languages",icon:"globe",subjects:[
-{id:"ar",title:"Arabic",tag:"AR",desc:"25+ countries, RTL script.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Script",d:"28 letters, forms."},{t:"Pronunciation",d:"Emphatic, gutturals."},{t:"Grammar",d:"Nouns, al-, gender."},{t:"Verbs",d:"Present conjugation."},{t:"Vocabulary",d:"Numbers, family."},{t:"Past Tense",d:"Patterns."},{t:"Conversations",d:"Market, restaurant."}]},
-{id:"asl",title:"ASL",tag:"ASL",desc:"Deaf community language.",src:"Gallaudet",lic:"CC BY 4.0",lessons:[{t:"Fingerspelling",d:"Alphabet, numbers."},{t:"Grammar",d:"Topic-comment, facial."},{t:"Questions",d:"Wh, yes/no."},{t:"Vocabulary",d:"Family, food, emotions."},{t:"Classifiers",d:"Objects, movement."},{t:"Deaf Culture",d:"History, community."}]},
-{id:"fr",title:"French",tag:"FR",desc:"Language of diplomacy.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Pronunciation",d:"Vowels, nasals, liaison."},{t:"Greetings",d:"Tu vs vous, politeness."},{t:"Present Tense",d:"-er/-ir/-re verbs."},{t:"Etre & Avoir",d:"To be/have."},{t:"Articles & Gender",d:"Definite, partitive."},{t:"Passe Compose",d:"Past participles."},{t:"Conversations",d:"Cafe, directions."}]},
-{id:"de",title:"German",tag:"DE",desc:"Most-spoken in Europe.",src:"Deutsche Welle",lic:"CC BY 4.0",lessons:[{t:"Pronunciation",d:"Umlauts, eszett."},{t:"Present & Word Order",d:"V2 rule, sein/haben."},{t:"Nouns & Gender",d:"Der/die/das."},{t:"Cases",d:"Accusative, dative."},{t:"Modal Verbs",d:"Konnen, mussen."},{t:"Past Tense",d:"Perfekt."},{t:"Conversations",d:"Shopping, restaurant."}]},
-{id:"el",title:"Greek (Modern)",tag:"EL",desc:"3400 years of history.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Alphabet",d:"24 letters."},{t:"Grammar",d:"Articles, genders."},{t:"Verbs",d:"Present, past."},{t:"Numbers",d:"Counting."},{t:"Conversations",d:"Taverna, directions."}]},
-{id:"he",title:"Hebrew",tag:"HE",desc:"Ancient, revived.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Aleph-Bet",d:"22 consonants."},{t:"Grammar",d:"Gender, agreement."},{t:"Verbs",d:"Pa'al."},{t:"Vocabulary",d:"Numbers, food."},{t:"Conversations",d:"Shuk, directions."}]},
-{id:"hi",title:"Hindi",tag:"HI",desc:"600M+ speakers.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Devanagari",d:"Script basics."},{t:"Grammar",d:"SOV, postpositions."},{t:"Verbs",d:"Present, past."},{t:"Vocabulary",d:"Numbers, family."},{t:"Questions",d:"Kya, kaun."},{t:"Conversations",d:"Shopping, travel."}]},
-{id:"it",title:"Italian",tag:"IT",desc:"Art, music, cuisine.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Pronunciation",d:"Double consonants."},{t:"Present Tense",d:"Essere/avere."},{t:"Articles",d:"Gender, plurals."},{t:"Past Tense",d:"Passato prossimo."},{t:"Prepositions",d:"Articulated."},{t:"Conversations",d:"Ordering, directions."}]},
-{id:"ja",title:"Japanese",tag:"JA",desc:"Three writing systems.",src:"MIT OCW",lic:"CC BY 4.0",lessons:[{t:"Hiragana",d:"46 characters."},{t:"Katakana",d:"Loanword script."},{t:"Sentences",d:"Desu/masu, particles."},{t:"Verbs",d:"Groups, masu, past."},{t:"Kanji Intro",d:"First 50, readings."},{t:"Te-Form",d:"Requests."},{t:"Conversations",d:"Shopping, transit."}]},
-{id:"ko",title:"Korean",tag:"KO",desc:"Hangul script.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Hangul",d:"Consonants, vowels."},{t:"Sentences",d:"SOV order."},{t:"Particles",d:"Subject, topic, object."},{t:"Verbs",d:"Tenses, levels."},{t:"Numbers",d:"Sino/native Korean."},{t:"Expressions",d:"Everyday phrases."}]},
-{id:"la",title:"Latin",tag:"LA",desc:"Romance language root.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Pronunciation",d:"Classical."},{t:"Declensions",d:"First, second, third."},{t:"Verbs",d:"Four conjugations."},{t:"Perfect",d:"Past tenses."},{t:"Reading",d:"Simple passages."}]},
-{id:"zh",title:"Mandarin Chinese",tag:"ZH",desc:"Most-spoken globally. Tonal.",src:"MIT OCW",lic:"CC BY 4.0",lessons:[{t:"Pinyin & Tones",d:"Four tones, system."},{t:"Basic Sentences",d:"SVO, negation."},{t:"Numbers & Measure Words",d:"Counting, counters."},{t:"Characters",d:"Radicals, first 50."},{t:"Questions",d:"Ma, shenme, nar."},{t:"Tense",d:"Le, guo, hui."},{t:"Culture",d:"Ordering, customs."}]},
-{id:"pl",title:"Polish",tag:"PL",desc:"Seven cases.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Pronunciation",d:"Sz, cz, nasals."},{t:"Nouns",d:"Three genders."},{t:"Verbs",d:"Conjugation."},{t:"Cases",d:"Accusative, locative."},{t:"Expressions",d:"Greetings, polite."}]},
-{id:"pt",title:"Portuguese",tag:"PT",desc:"Brazil + Portugal.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Pronunciation",d:"Brazilian vs European."},{t:"Present Tense",d:"Regular verbs."},{t:"Ser vs Estar",d:"Usage."},{t:"Past Tenses",d:"Perfeito, imperfeito."},{t:"Nouns",d:"Gender, contractions."},{t:"Expressions",d:"Daily life."}]},
-{id:"ru",title:"Russian",tag:"RU",desc:"Cyrillic, six cases.",src:"MIT OCW",lic:"CC BY 4.0",lessons:[{t:"Cyrillic",d:"33 letters."},{t:"Nouns & Gender",d:"Three genders."},{t:"Verbs",d:"Conjugation."},{t:"Cases",d:"Accusative, prep."},{t:"Aspect",d:"Imperfective/perfective."},{t:"Conversations",d:"Introductions."}]},
-{id:"es",title:"Spanish",tag:"ES",desc:"500M+ speakers worldwide.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Alphabet & Pronunciation",d:"Vowels, consonants, stress."},{t:"Greetings & Introductions",d:"Hola, polite forms."},{t:"Present Tense",d:"-ar/-er/-ir conjugation."},{t:"Ser vs Estar",d:"Permanent vs temporary."},{t:"Nouns & Adjectives",d:"Gender, agreement."},{t:"Past Tense",d:"Preterite, time markers."},{t:"Conversations",d:"Food, directions, shopping."}]},
-{id:"sw",title:"Swahili",tag:"SW",desc:"East African lingua franca.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Greetings",d:"Jambo, habari."},{t:"Noun Classes",d:"Agreement."},{t:"Verbs",d:"Prefixes, tense."},{t:"Numbers",d:"Counting."},{t:"Conversations",d:"Market, travel."}]},
-{id:"tr",title:"Turkish",tag:"TR",desc:"Vowel harmony.",src:"OER Commons",lic:"CC BY 4.0",lessons:[{t:"Alphabet",d:"29 letters, harmony."},{t:"Sentences",d:"SOV, var/yok."},{t:"Suffixes",d:"Plural, cases."},{t:"Tenses",d:"Present, past."},{t:"Questions",d:"Mi particle."},{t:"Conversations",d:"Bazaar, cay."}]}
-]}
+const CATEGORIES = [
+{ id:"foundations", name:"Foundations", icon:"cpu", blurb:"How speech, models, and memory fit together on your Pi or PC." },
+{ id:"data", name:"Your accounts", icon:"mail", blurb:"What happens when you connect email, calendar, and cloud APIs." },
+{ id:"home", name:"Home & media", icon:"home", blurb:"Lights, music, and devices — what “control” really means." },
+{ id:"info", name:"News & world", icon:"glob", blurb:"Where headlines and weather data come from." },
+{ id:"work", name:"Tasks & sync", icon:"check", blurb:"Lists, nudges, and lightweight integrations." },
+{ id:"dev", name:"Code & builder", icon:"code", blurb:"GitHub, snippets, and how the web UI talks to Python." },
 ];
 
-let _ts=0,_tl=0;DB.forEach(c=>{_ts+=c.subjects.length;c.subjects.forEach(s=>{_tl+=s.lessons.length})});const TOTAL_S=_ts,TOTAL_L=_tl;
+const MODULES = [
+{ id:"flow",cat:"foundations",title:"From voice to action",tag:"STACK",desc:"The path your words take before anything happens on disk or on the network.",
+lessons:[
+{t:"Intent, not magic",body:"When you speak or type, nothing “just knows” what you want. A speech model turns audio into text, then a language model turns text into a plan: natural language in, structured instructions out. Learning that path is the core of computer literacy with agents."},
+{t:"Why local first matters",body:"On Scatter/Hazel, the goal is to keep inference and personal state on hardware you own when possible. Cloud models may still handle some tasks, but the design makes it obvious what is local (Whisper, SQLite, Piper) and what is not."},
+{t:"Actions vs chat",body:"The assistant often appends machine-readable tags to responses — calendar refreshes, smart-home commands, and so on. Those tags are for other programs, not for you to hear aloud. Separating “what Hazel says” from “what the OS does” is how you stay in control."}]},
+{ id:"stt",cat:"foundations",title:"Speech to text (Whisper)",tag:"STT",desc:"On-device listening: what runs where, and what never leaves the machine.",
+lessons:[
+{t:"What Whisper is doing",body:"Whisper is a neural model that maps audio waveforms to text. It runs locally on the Pi, so your raw voice is not sent to a speech API unless you have explicitly set up a different path."},
+{t:"Microphone trust",body:"If the device can hear you, it can in principle record you. The honest constraint is: you know the code path, you can unplug the mic, and you can read logs. That is the same threat model as any voice assistant, but with open components."},
+{t:"Accuracy tradeoffs",body:"On-device STT is slightly less polished than some cloud services, but the latency and privacy win matter in classrooms and shared machines. Worse accuracy is a teaching moment: models guess."}]},
+{ id:"tts",cat:"foundations",title:"Text to speech",tag:"TTS",desc:"ElevenLabs, Piper, and when the machine speaks without the cloud.",
+lessons:[
+{t:"Primary vs fallback",body:"If ElevenLabs (or another cloud voice) is configured, you get high-quality speech that leaves your network. Piper is a local neural voice that never phones home — lower fidelity, full sovereignty."},
+{t:"What gets spoken",body:"The system strips action tags and internal instructions before TTS. If something sounds wrong, it is often because the model wrote content meant for a screen, not a speaker."},
+{t:"Choosing voices in schools",body:"A district deployment might lock Piper only. Teaching kids which stack is in use (check settings or env) is part of media literacy."}]},
+{ id:"mem",cat:"foundations",title:"SQLite memory",tag:"DB",desc:"Facts, chat history, reminders, and health logs — all plain files you can inspect.",
+lessons:[
+{t:"Why a database in the home",body:"SQLite is a single file on disk. Your memories are rows in tables, not someone else’s product analytics. Backups are copying a file. That is the “sovereignty” story in concrete terms."},
+{t:"What is stored",body:"Conversations, extracted facts, reminders, and health entries are typical. Each feature module appends to the same idea: state you can delete, port, or audit."},
+{t:"Limits",body:"If someone has shell access to the device, they can read or modify the file. The threat model is honest: local first does not mean nation-state proof — it means you are not paying with silent cloud retention."}]},
+{ id:"gcal",cat:"data",title:"Google Calendar",tag:"CAL",desc:"OAuth, scopes, and what “check my day” really triggers.",
+lessons:[
+{t:"OAuth in plain terms",body:"You log in to Google in a browser once, and the assistant stores a token that says “this app can read (or write) calendar data until revoked.” The Pi never sees your Google password on every request — it exchanges the token."},
+{t:"Read vs write",body:"Read-only is safer for classrooms. If the assistant can add events, a confused model could in theory add junk events — that is why confirmations matter for sensitive writes."},
+{t:"What appears in the UI",body:"The web dashboard fetches upcoming events to paint panels. The same data can be read aloud. One source, two surfaces: voice and screen."}]},
+{ id:"gmail",cat:"data",title:"Gmail",tag:"MAIL",desc:"IMAP/HTTP APIs: reading inboxes and sending with confirmation.",
+lessons:[
+{t:"The Gmail API",body:"Email is not scraped through a password field on each request. The app uses Google’s API with the scopes you approved — search, read thread, or send — each scope is a permission you can review in Google Account settings."},
+{t:"Send confirmation",body:"Good design never sends mail silently from vague prompts. If your build asks before send, that is a safety and consent layer students should see named explicitly."},
+{t:"Mail vs training",body:"With Anthropic, your mail content is processed under their API terms for that call — it is not the same as “Google trains on my inbox.” Teach the difference between an API call and a product learning from your data."}]},
+{ id:"hass",cat:"home",title:"Home Assistant",tag:"IOT",desc:"REST control of lights, switches, and more — a local hub vs cloud gadgets.",
+lessons:[
+{t:"Why a hub",body:"Home Assistant is often a small server on your LAN. The assistant issues HTTP calls like “turn on light.living_room” that HA translates to real devices. The Pi does not talk Zigbee or Z-Wave directly unless HA does."},
+{t:"Action tags",body:"[ACTION: ...] style tags map to home automation. They are a contract between the model’s plan and a Python function. Tracing a tag to a function call is a perfect lesson in composable systems."},
+{t:"Failure modes",body:"If HA is down, the assistant can lie confidently about the state of a room. Teaching “verify on the wall switch” is valid engineering hygiene."}]},
+{ id:"spot",cat:"home",title:"Spotify",tag:"MUSIC",desc:"Playback control, queues, and what a music API can and cannot do.",
+lessons:[
+{t:"Control plane",body:"Spotify’s Web API lets you find tracks, start playback, and adjust volume for linked devices. The assistant is a remote; it is not “uploading your taste” in a different way than the official app, but tokens still deserve rotation if leaked."},
+{t:"Device pickers",body:"If playback targets a specific speaker, the user should know which `device_id` is active. Mismatch is a common bug — good fodder for debugging lessons."},
+{t:"Scope of creativity",body:"The music integration does not make new audio; it routes intent. Distinguish “AI composed music” from “AI pressed play,” which is the literacy point."}]},
+{ id:"wx",cat:"info",title:"Weather",tag:"WX",desc:"Open-Meteo and other free services — no key, still a network call.",
+lessons:[
+{t:"Keyless APIs",body:"Open-Meteo does not need an API key, but your Pi still fetches from their servers. “No key” is not the same as “air gapped” — you are still trusting their responses."},
+{t:"Caching and rate limits",body:"Respectful clients cache forecasts. If every voice wake refreshed weather, you would thrash a public service. Batching and intervals are part of good citizenship on the web."},
+{t:"Precision vs place",body:"Forecasts are model outputs with uncertainty. The assistant should not sound more certain than a meteorology student would, especially for severe weather: link to official alerts when needed."}]},
+{ id:"news",cat:"info",title:"News & search",tag:"NEWS",desc:"Tavily, headlines, and injecting fresh web context into a chat.",
+lessons:[
+{t:"Retrieval vs memory",body:"Web search results are not stored in your long-term memory by default. They are retrieved for this answer. The distinction is everything when a student thinks “it read the internet and learned it forever.”"},
+{t:"Bias and time",body:"Headline APIs rank stories. Ranks are editorial even when sources look neutral. Teaching ranking literacy beats pretending results are “raw truth.”"},
+{t:"Cost",body:"Search APIs cost money or quota. A classroom deployment may disable them. Saying that out loud is financial literacy for APIs."}]},
+{ id:"tdo",cat:"work",title:"Tasks, list, and nudges",tag:"EXT",desc:"Todoist, shopping, and phone notifications — small APIs, clear boundaries.",
+lessons:[
+{t:"One app, many tools",body:"`integrations.py` exists so optional modules can fail import without taking down the rest. That is how you scale surface area without a monolith: load what is installed."},
+{t:"Notify responsibly",body:"Pushing a phone alert is interrupting a human. Tying ntfy or similar to explicit user requests keeps trust — same lesson as school bell policy."},
+{t:"Shopping lists are data",body:"A shared list is a tiny database. Who can add or clear is a permissions question, not a toy feature."}]},
+{ id:"gh",cat:"dev",title:"GitHub",tag:"DEV",desc:"Listing repos, reading commits, and push flows — what “AI pair programmer” can touch.",
+lessons:[
+{t:"Tokens, again",body:"A GitHub personal access token is a password for automation. Storing it in an env var on the device is better than in chat logs. Rotating on leak is a drill students should do once."},
+{t:"Read before write",body:"Listing and reading is lower risk than push. Any workflow that can modify main should require human confirmation, especially in a school lab with shared org repos."},
+{t:"What the model does not do",body:"The assistant navigates the API; it does not automatically understand your team’s code review culture. Framing: tools, not employees."}]},
+{ id:"code",cat:"dev",title:"Code runner",tag:"REPL",desc:"Why running Python on voice is powerful and dangerous.",
+lessons:[
+{t:"Arbitrary code",body:"`exec` on demand is a superpower: homework automation, one-off math, and also footguns. A locked-down school image should run snippets in a sandbox or disable the feature — teach why."},
+{t:"Output vs effect",body:"Distinguish printing a result from mutating a file, network, or device. The literacy goal is to map side effects, not to celebrate clever hacks."},
+{t:"Logging",body:"The launcher and logs exist so an adult can see what ran. That is accountability for any classroom deployment."}]},
+{ id:"ws",cat:"dev",title:"This web UI",tag:"UI",desc:"Websockets, port 8082, and how panels get live data.",
+lessons:[
+{t:"Not a website in the cloud",body:"`python3 -m http.server` only serves static files. The chat and panels use a WebSocket to `main.py` / `hzl_ws.py` so the browser can get streaming state without polling."},
+{t:"Message types",body:"`calendar_state`, `music_state`, and similar messages are a contract. Open `hzl_ws.py` and read the `broadcast` payload shapes — that is the map from backend to UI."},
+{t:"Why this matters in class",body:"When students add a feature, they touch both a Python module and, sometimes, a JSON message. That is full-stack thinking without shipping to AWS on day one."}]},
+];
 
-const icons={
-globe:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
-code:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
-brain:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="10" y1="22" x2="14" y2="22"/></svg>`,
-palette:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.38-.14-.74-.39-1.01-.23-.26-.37-.61-.37-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.5-4.5-9-10-9z"/></svg>`,
-briefcase:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
-flask:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6v5.586l4.707 4.707A1 1 0 0 1 19 14.707V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4.293a1 1 0 0 1 .293-.707L10 9.586V3"/><line x1="9" y1="3" x2="15" y2="3"/></svg>`,
-sigma:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 7V4H6l6 8-6 8h12v-3"/></svg>`,
-server:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
-globe2:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
-heart:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
-wrench:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
-search:(s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
-book:(s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
-db:(s=15)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
-star:(s=14)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-zap:(s=14)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-check:(s=13)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`,
-back:(s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>`,
-trash:(s=15)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
-gear:(s=17)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
+const LS_KEY = "scatter_os_guide_read";
+function readIds(){ try{ return new Set(JSON.parse(localStorage.getItem(LS_KEY)||"[]")); } catch(e){ return new Set(); } }
+function markRead(lid, on){
+  const s = readIds();
+  if(on) s.add(lid); else s.delete(lid);
+  localStorage.setItem(LS_KEY, JSON.stringify([...s]));
+}
+
+const icons = {
+  cpu:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>`,
+  mail:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
+  home:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  globe:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+  check:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg>`,
+  code:()=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  back:(s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>`,
+  search:(s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  chk:(s=13)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`,
 };
 
-let state={view:"catalog",enrolling:null,selAc:0,selLi:0,acs:[],prog:{},xp:0,search:"",catF:null,showSet:false,delC:null,showCust:false,gLoad:false,gErr:null};
+let state = { view: "home", search: "", cat: null, mid: null, li: 0, _read: readIds() };
 
-// Initialize from localStorage (fresh start)
-(function(){
-    try {
-        const savedAcs = localStorage.getItem("hzl_a");
-        const savedProg = localStorage.getItem("hzl_pr");
-        const savedXp = localStorage.getItem("hzl_xp");
-        if(savedAcs) state.acs = JSON.parse(savedAcs);
-        if(savedProg) state.prog = JSON.parse(savedProg);
-        if(savedXp) state.xp = parseInt(savedXp);
-    } catch(e) {
-        console.log("Starting fresh");
-        localStorage.clear();
-    }
-})();
+function setState(u){ state = { ...state, ...u, _read: readIds() }; render(); }
+function lessonId(m, i){ return `${m.id}_${i}`; }
 
-function setState(updates){state={...state,...updates};render()}
-function addXp(n){const newXp=state.xp+n;localStorage.setItem("hzl_xp",newXp);setState({xp:newXp})}
-function toggle(id){const newProg={...state.prog,[id]:!state.prog[id]};localStorage.setItem("hzl_pr",JSON.stringify(newProg));setState({prog:newProg})}
-function enroll(subj){setState({enrolling:subj});setTimeout(()=>{const lessons=subj.lessons.map((l,i)=>({id:`${subj.id}_${i}`,t:l.t,d:l.d}));const newAc={id:`ac_${Date.now()}`,...subj,lessons};const newAcs=[...state.acs,newAc];localStorage.setItem("hzl_a",JSON.stringify(newAcs));addXp(500);setState({acs:newAcs,enrolling:null,view:"my",selAc:newAcs.length-1})},2000)}
-function delAc(idx){const newAcs=state.acs.filter((_,i)=>i!==idx);localStorage.setItem("hzl_a",JSON.stringify(newAcs));setState({acs:newAcs,delC:null,view:"my"})}
-
-function Modal(content,onClose){return `<div class="modal-overlay" onclick="${onClose?`if(event.target===this){${onClose}()}`:''}"><div class="modal-content" onclick="event.stopPropagation()">${content}</div></div>`}
-
-function SubjectCard(subj,delay){const done=state.acs.some(a=>a.title===subj.title&&a.tag===subj.tag);return `<div onclick='window.enrollSubject(${JSON.stringify(subj).replace(/'/g,"\\'")})'style="background:${T.fg};border:1px solid ${T.bd};border-radius:${T.r}px;padding:18px 20px;cursor:pointer;box-shadow:${T.sh};animation:fadeIn .3s ease ${delay}s both"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:${T.txM};font-family:${T.fs}">${subj.tag}</span>${done?`<span style="color:${T.acc};font-size:11px;font-weight:600">ENROLLED</span>`:''}</div><h3 style="font-family:${T.ff};font-size:17px;font-weight:500;color:${T.tx};margin-bottom:4px">${subj.title}</h3><p style="font-size:12px;color:${T.tx2};font-family:${T.fs};line-height:1.4;margin-bottom:10px">${subj.desc}</p><p style="font-size:11px;color:${T.txM};font-family:${T.fs}">${subj.lessons.length} lessons</p></div>`}
-
-function ProgressBar(done,total){const pct=total===0?0:(done/total)*100;return `<div style="background:${T.fg2};border-radius:20px;height:8px;overflow:hidden"><div style="background:${T.acc};height:100%;width:${pct}%;transition:width .3s ease;border-radius:20px"></div></div>`}
-
-function Badge(status){const colors={not_started:{bg:T.fg2,tx:T.txM,label:"Not Started"},in_progress:{bg:"#dbeafe",tx:"#1e40af",label:"In Progress"},completed:{bg:"#dcfce7",tx:"#15803d",label:"Completed"}};const c=colors[status]||colors.not_started;return `<span style="font-size:9px;font-weight:700;letter-spacing:1px;color:${c.tx};background:${c.bg};padding:4px 8px;border-radius:4px">${c.label}</span>`}
+function modFiltered(){
+  return MODULES.filter(m => {
+    if (state.cat && m.cat !== state.cat) return false;
+    if (!state.search) return true;
+    const q = state.search.toLowerCase();
+    return m.title.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q) || m.tag.toLowerCase().includes(q);
+  });
+}
 
 function render(){
-const sel=state.selAc!==null?state.acs[state.selAc]:null;
-const tD=state.acs.reduce((s,a)=>s+a.lessons.filter(l=>state.prog[l.id]).length,0);
-const tL=state.acs.reduce((s,a)=>s+a.lessons.length,0);
+  const read = readIds();
+  const totalL = MODULES.reduce((a,m)=>a+m.lessons.length,0);
+  const doneL = MODULES.reduce((a,m)=>a+m.lessons.filter((_,i)=>read.has(lessonId(m,i))).length,0);
 
-let html='';
-if(state.delC!==null&&state.acs[state.delC]){
-html+=Modal(`<h3 style="font-family:${T.ff};font-size:20px;font-weight:400;color:${T.tx};margin-bottom:6px">Delete academy?</h3><p style="font-size:13px;color:${T.tx2};font-family:${T.fs};margin-bottom:20px">All progress will be lost.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button onclick="setState({delC:null})"style="padding:9px 18px;font-size:13px;font-family:${T.fs};color:${T.tx2};background:${T.fg2};border-radius:${T.rs}px;border:1px solid ${T.bd}">Cancel</button><button onclick="delAc(${state.delC})"style="padding:9px 18px;font-size:13px;font-weight:600;font-family:${T.fs};color:white;background:${T.err};border-radius:${T.rs}px">Delete</button></div>`,'setState({delC:null})');
+  let html = `<div style="min-height:100vh;background:${T.bg}"><header style="position:sticky;top:0;z-index:50;background:#F5F2EBE6;backdrop-filter:blur(8px);border-bottom:1px solid ${T.bdL};padding:0 20px"><div style="max-width:800px;margin:0 auto;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h1 onclick="setState({view:'home',cat:null,mid:null})" style="font-family:${T.ff};font-size:20px;font-weight:500;cursor:pointer;color:${T.tx}">Scatter OS</h1><p style="font-size:11px;color:${T.txM};margin-top:2px">Learn what each part of your assistant does</p></div><div style="font-size:12px;color:${T.tx2}">${doneL}/${totalL} sections read</div></div></header><main style="max-width:800px;margin:0 auto;padding:24px 20px 48px">`;
+
+  if (state.view === "lesson" && state.mid != null) {
+    const m = MODULES[state.mid];
+    if (!m) { setState({ view: "module", mid: null }); return; }
+    const les = m.lessons[state.li];
+    const lid = lessonId(m, state.li);
+    const isRead = read.has(lid);
+    html += `<button onclick="setState({view:'module'})" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:${T.tx2};font-family:${T.fs};margin-bottom:18px;background:none;border:none;cursor:pointer">${icons.back()} ${m.title}</button>`;
+    html += `<article style="background:${T.fg};border:1px solid ${T.bd};border-radius:14px;padding:28px;box-shadow:${T.sh}">`;
+    html += `<p style="font-size:10px;letter-spacing:1.2px;font-weight:700;color:${T.txM}">${(CATEGORIES.find(c=>c.id===m.cat)||{}).name||m.cat} · ${m.tag}</p>`;
+    html += `<h2 style="font-family:${T.ff};font-size:28px;font-weight:400;margin:8px 0 16px;color:${T.tx}">${les.t}</h2>`;
+    html += `<div style="font-size:15px;line-height:1.65;color:${T.tx2};font-family:${T.fs}">`;
+    les.body.split("\n\n").forEach(p => { html += `<p style="margin-bottom:14px">${escapeHtml(p)}</p>`; });
+    html += `</div>`;
+    html += `<div style="margin-top:24px;padding-top:20px;border-top:1px solid ${T.bd};display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">`;
+    html += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-family:${T.fs};color:${T.tx}"><input type="checkbox" ${isRead?"checked":""} onchange="markRead('${lid}',this.checked);setState({})" style="width:18px;height:18px;accent-color:${T.acc}"/> Mark as read</label>`;
+    html += `<div style="display:flex;gap:8px">`;
+    if (state.li > 0) html += `<button onclick="setState({li:${state.li-1}})" style="padding:10px 16px;font-size:13px;border:1px solid ${T.bd};border-radius:${T.rs}px;background:white;font-family:${T.fs};color:${T.tx2}">Previous</button>`;
+    if (state.li < m.lessons.length - 1) html += `<button onclick="setState({li:${state.li+1}})" style="padding:10px 16px;font-size:13px;border:1px solid ${T.bd};border-radius:${T.rs}px;background:${T.tx};color:white;font-family:${T.fs}">Next</button>`;
+    html += `</div></div></article>`;
+  } else if (state.view === "module" && state.mid != null) {
+    const m = MODULES[state.mid];
+    if (!m) { setState({ view: "home", mid: null }); return; }
+    const cat = CATEGORIES.find(c => c.id === m.cat);
+    html += `<button onclick="setState({view:'home',cat:'${m.cat}'})" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:${T.tx2};margin-bottom:16px;background:none;border:none;cursor:pointer;font-family:${T.fs}">${icons.back()} ${cat?cat.name:'Modules'}</button>`;
+    html += `<div style="margin-bottom:20px"><span style="font-size:10px;font-weight:700;letter-spacing:1.2px;color:${T.txM}">${m.tag}</span><h2 style="font-family:${T.ff};font-size:26px;font-weight:400;margin:6px 0 8px;color:${T.tx}">${m.title}</h2><p style="font-size:14px;color:${T.tx2};line-height:1.5;font-family:${T.fs}">${m.desc}</p></div>`;
+    m.lessons.forEach((L,i) => {
+      const lid = lessonId(m,i);
+      const done = read.has(lid);
+      html += `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:${T.fg2};border:1px solid ${T.bd};border-radius:10px;margin-bottom:8px">`;
+      html += `<span style="margin-top:2px;color:${done?T.acc:T.txM}">${done?icons.chk(14):'○'}</span>`;
+      html += `<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500;color:${T.tx};font-family:${T.fs}">${i+1}. ${escapeHtml(L.t)}</div>`;
+      html += `<button onclick="setState({view:'lesson',li:${i}})" style="margin-top:8px;padding:6px 12px;font-size:12px;font-weight:600;border:1px solid ${T.bd};border-radius:6px;background:white;color:${T.acc};font-family:${T.fs}">Read</button></div></div>`;
+    });
+  } else {
+    /* home: filter chips + list */
+    html += `<p style="font-size:15px;color:${T.tx2};line-height:1.55;font-family:${T.fs};margin-bottom:12px">This guide tracks <strong>Scatter / Hazel</strong> itself — the programs you add to the device, the tokens you approve, and the path from speech to action. It replaces the old subject catalog and game-style progress with plain reading and checkboxes.</p>`;
+    html += `<p style="font-size:14px;color:${T.tx2};line-height:1.5;font-family:${T.fs};margin-bottom:20px">Praxis: <a href="classroom.html" style="color:${T.acc};font-weight:600">Local single-player “Kahoot”</a> — same confabulatory frame as <code>scatter-system/docs/CONFABULATORY_PHILOSOPHY.md</code> (on-machine estimates ~, local topology, time held for understanding).</p>`;
+    html += `<div style="position:relative;margin-bottom:20px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:${T.txM}">${icons.search()}</span><input value="${escapeAttr(state.search)}" placeholder="Filter modules…" oninput="setState({search:this.value})" style="width:100%;padding:12px 14px 12px 40px;font-size:14px;border:1.5px solid ${T.bd};border-radius:8px;background:${T.fg};color:${T.tx};font-family:${T.fs}"/></div>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">`;
+    html += `<button onclick="setState({cat:null})" style="padding:8px 14px;font-size:12px;border-radius:20px;border:1px solid ${T.bd};font-family:${T.fs};background:${!state.cat?T.tx:'white'};color:${!state.cat?'#fff':T.tx2}">All</button>`;
+    CATEGORIES.forEach(c => {
+      html += `<button onclick="setState({cat:'${c.id}'})" style="padding:8px 14px;font-size:12px;border-radius:20px;border:1px solid ${T.bd};font-family:${T.fs};background:${state.cat===c.id?T.tx:'white'};color:${state.cat===c.id?'#fff':T.tx2}">${c.name}</button>`;
+    });
+    html += `</div>`;
+    const groups = {};
+    CATEGORIES.forEach(c=>{groups[c.id]=[]});
+    modFiltered().forEach(m=>{if(!groups[m.cat]) groups[m.cat]=[]; groups[m.cat].push(m);});
+    const order = CATEGORIES.map(c=>c.id);
+    order.forEach(cid => {
+      const list = (state.cat ? (state.cat===cid?groups[cid]:[]) : groups[cid]).filter(x=>x);
+      if (!list.length) return;
+      const c = CATEGORIES.find(x=>x.id===cid);
+      html += `<section style="margin-bottom:28px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:${T.acc}">${icons[c.icon]?icons[c.icon]():''}</span><h2 style="font-family:${T.ff};font-size:20px;font-weight:500;color:${T.tx}">${c.name}</h2></div><p style="font-size:12px;color:${T.txM};margin:-6px 0 12px 0;font-family:${T.fs}">${c.blurb}</p>`;
+      html += `<div style="display:grid;gap:10px">${list.map((m,idx)=>{ const mid=MODULES.indexOf(m); const pr = m.lessons.filter((_,i)=>read.has(lessonId(m,i))).length; return `<div onclick="setState({view:'module',mid:${mid}})" style="background:${T.fg};border:1px solid ${T.bd};border-radius:12px;padding:16px 18px;cursor:pointer;box-shadow:${T.sh};animation:fadeIn .25s ease ${idx*.03}s both"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><span style="font-size:9px;font-weight:700;letter-spacing:1.2px;color:${T.txM}">${m.tag}</span><h3 style="font-family:${T.ff};font-size:17px;font-weight:500;margin-top:4px;color:${T.tx}">${m.title}</h3><p style="font-size:12px;color:${T.tx2};line-height:1.4;margin-top:6px;font-family:${T.fs}">${m.desc}</p></div><span style="font-size:11px;color:${T.txM};white-space:nowrap">${pr}/${m.lessons.length}</span></div></div>`; }).join('')}</div></section>`;
+    });
+  }
+
+  html += `</main><footer style="text-align:center;padding:8px 20px 32px"><p style="font-size:11px;color:${T.txM};font-family:${T.fs}">Local-only guide — no account, no catalog sync. Clear progress: localStorage key <code style="font-size:10px">scatter_os_guide_read</code></p></footer></div>`;
+  document.getElementById("app").innerHTML = html;
 }
-
-html+=`<div style="min-height:100vh;background:${T.bg};font-family:${T.fs}"><div style="position:fixed;top:0;left:0;right:0;z-index:50;background:${T.bg}E6;backdrop-filter:blur(8px);border-bottom:1px solid ${T.bdL};padding:0 20px"><div style="max-width:960px;margin:0 auto;height:52px;display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:16px"><h1 onclick="setState({enrolling:null,view:'catalog'})"style="font-family:${T.ff};font-size:20px;font-weight:500;color:${T.tx};cursor:pointer">HZL Academy</h1><div style="display:flex;gap:2px"><button onclick="setState({enrolling:null,view:'catalog'})"style="padding:6px 12px;font-size:12px;font-weight:${state.view==='catalog'&&!state.enrolling?700:500};font-family:${T.fs};color:${state.view==='catalog'&&!state.enrolling?T.acc:T.tx2};border-bottom:${state.view==='catalog'&&!state.enrolling?`2px solid ${T.acc}`:'2px solid transparent'}">${icons.db(13)} Catalog</button><button onclick="setState({enrolling:null,view:'my'})"style="padding:6px 12px;font-size:12px;font-weight:${['my','detail','lesson'].includes(state.view)&&!state.enrolling?700:500};font-family:${T.fs};color:${['my','detail','lesson'].includes(state.view)&&!state.enrolling?T.acc:T.tx2};border-bottom:${['my','detail','lesson'].includes(state.view)&&!state.enrolling?`2px solid ${T.acc}`:'2px solid transparent'}">${icons.book(13)} My Academies${state.acs.length>0?` (${state.acs.length})`:''}</button></div></div><div style="display:flex;align-items:center;gap:10px"><div style="display:flex;align-items:center;gap:5px;color:${T.gold}">${icons.star(12)}<span style="font-size:12px;font-weight:700;font-family:${T.fs}">${state.xp} XP</span></div></div></div></div><main style="max-width:960px;margin:0 auto;padding:68px 20px 60px">`;
-
-if(state.enrolling){
-html+=`<div style="text-align:center;padding:60px 20px;animation:fadeIn .3s ease"><div class="spinner"style="width:40px;height:40px;border-width:3px;margin:0 auto 20px"></div><h2 style="font-family:${T.ff};font-size:24px;font-weight:400;color:${T.tx};margin-bottom:8px">Preparing Academy</h2><p style="font-size:14px;color:${T.tx2};font-family:${T.fs}">${state.enrolling.title} - ${state.enrolling.lessons.length} lessons</p></div>`;
-}else if(state.view==='catalog'){
-const filtered=(state.catF?DB.filter(c=>c.cat===state.catF):DB).map(c=>({...c,subjects:c.subjects.filter(s=>!state.search||s.title.toLowerCase().includes(state.search.toLowerCase())||s.tag.toLowerCase().includes(state.search.toLowerCase()))})).filter(c=>c.subjects.length>0);
-html+=`<div style="animation:fadeIn .3s ease"><div style="text-align:center;margin-bottom:24px"><h2 style="font-family:${T.ff};font-size:clamp(24px,4vw,34px);font-weight:400;color:${T.tx};margin-bottom:6px">Subject Catalog</h2><p style="font-size:14px;color:${T.tx2};font-family:${T.fs}">${TOTAL_S} subjects. ${TOTAL_L}+ lessons. All Creative Commons.</p></div><div style="position:relative;max-width:400px;margin:0 auto 20px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:${T.txM}">${icons.search()}</span><input id="searchInput"value="${state.search}"placeholder="Search subjects..."style="width:100%;padding:11px 14px 11px 38px;font-size:14px;font-family:${T.fs};border:1.5px solid ${T.bd};border-radius:${T.rs}px;background:${T.fg};color:${T.tx}"/></div><div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:24px"><button onclick="setState({catF:null})"style="padding:6px 14px;font-size:12px;font-weight:${!state.catF?700:500};font-family:${T.fs};border-radius:20px;background:${!state.catF?T.tx:'transparent'};color:${!state.catF?'white':T.tx2};border:1px solid ${!state.catF?T.tx:T.bd}">All</button>${DB.map(c=>`<button onclick="setState({catF:'${c.cat}'})"style="padding:6px 14px;font-size:12px;font-weight:${state.catF===c.cat?700:500};font-family:${T.fs};border-radius:20px;background:${state.catF===c.cat?T.tx:'transparent'};color:${state.catF===c.cat?'white':T.tx2};border:1px solid ${state.catF===c.cat?T.tx:T.bd}">${c.cat}</button>`).join('')}</div>${filtered.map(cat=>`<div style="margin-bottom:28px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:${T.acc}">${icons[cat.icon]?icons[cat.icon]():''}</span><h2 style="font-family:${T.ff};font-size:20px;font-weight:500;color:${T.tx}">${cat.cat}</h2><span style="font-size:11px;color:${T.txM};font-family:${T.fs}">${cat.subjects.length}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px">${cat.subjects.map((s,i)=>SubjectCard(s,i*.04)).join('')}</div></div>`).join('')}</div>`;
-}else if(state.view==='my'){
-html+=`<div style="animation:fadeIn .3s ease"><div style="text-align:center;margin-bottom:20px"><h2 style="font-family:${T.ff};font-size:clamp(22px,3vw,30px);font-weight:400;color:${T.tx};margin-bottom:4px">My Academies</h2>${tL>0?`<p style="font-size:13px;color:${T.tx2};font-family:${T.fs}">${tD}/${tL} completed</p>`:''}</div>${state.acs.length>0?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:12px">${state.acs.map((a,i)=>{const dn=a.lessons.filter(l=>state.prog[l.id]).length,tot=a.lessons.length,st=dn===0?"not_started":dn===tot?"completed":"in_progress";return `<div onclick="setState({selAc:${i},view:'detail'})"style="background:${T.fg};border-radius:${T.r}px;padding:18px 20px;cursor:pointer;border:1px solid ${T.bd};box-shadow:${T.sh};animation:fadeIn .3s ease ${i*.05}s both"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:${T.txM};font-family:${T.fs}">${a.tag}</span>${Badge(st)}</div><h3 style="font-family:${T.ff};font-size:17px;font-weight:500;color:${T.tx};margin-bottom:3px">${a.title}</h3><p style="font-size:12px;color:${T.tx2};font-family:${T.fs};line-height:1.4;margin-bottom:10px">${a.description||a.desc}</p>${ProgressBar(dn,tot)}</div>`}).join('')}</div>`:`<div style="text-align:center;padding:40px 16px"><p style="font-size:14px;color:${T.txM};font-family:${T.fs};margin-bottom:12px">No academies yet.</p><button onclick="setState({view:'catalog'})"style="padding:11px 24px;font-size:14px;font-weight:600;font-family:${T.fs};color:white;background:${T.tx};border-radius:${T.rs}px">Browse Catalog</button></div>`}</div>`;
-}else if(state.view==='detail'&&sel){
-const done=sel.lessons.filter(l=>state.prog[l.id]).length;
-html+=`<div style="animation:fadeIn .3s ease"><div style="display:flex;justify-content:space-between;margin-bottom:14px"><button onclick="setState({view:'my'})"style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;color:${T.tx2};font-family:${T.fs}">${icons.back()} My Academies</button><button onclick="setState({delC:${state.selAc}})"style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:${T.txM};font-family:${T.fs};padding:5px 10px;border-radius:6px;border:1px solid ${T.bd}">${icons.trash(13)} Delete</button></div><div style="background:${T.fg};border-radius:14px;padding:22px 24px;border:1px solid ${T.bd};box-shadow:${T.sh}"><div style="margin-bottom:16px"><span style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:${T.txM};font-family:${T.fs}">${sel.tag}</span><h2 style="font-family:${T.ff};font-size:clamp(20px,4vw,26px);font-weight:400;color:${T.tx};line-height:1.2;margin-top:4px">${sel.title}</h2><p style="font-size:13px;color:${T.tx2};font-family:${T.fs};margin-top:4px">${sel.description||sel.desc}</p>${sel.src?`<p style="font-size:11px;color:${T.txM};font-family:${T.fs};margin-top:6px">Source: ${sel.src} (${sel.lic})</p>`:''}<div style="margin-top:12px">${ProgressBar(done,sel.lessons.length)}</div></div><div style="display:flex;flex-direction:column;gap:2px">${sel.lessons.map((l,i)=>{const isDone=state.prog[l.id];return `<div style="display:flex;align-items:center;gap:8px;padding:12px;background:${T.fg2};border-radius:8px;border:1px solid ${T.bd}"><button onclick="toggle('${l.id}');if(!${isDone})addXp(50)"style="flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid ${isDone?T.acc:T.bd};background:${isDone?T.acc:'white'};display:flex;align-items:center;justify-content:center;color:white">${isDone?icons.check(12):''}</button><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:${T.tx};font-family:${T.fs};margin-bottom:2px">${i+1}. ${l.t}</div><div style="font-size:11px;color:${T.tx2};font-family:${T.fs}">${l.d}</div></div><button onclick="setState({selLi:${i},view:'lesson'})"style="padding:6px 12px;font-size:11px;font-weight:600;font-family:${T.fs};color:${T.acc};background:white;border:1px solid ${T.bd};border-radius:6px">Open</button></div>`}).join('')}</div></div></div>`;
-}else if(state.view==='lesson'&&sel){
-const les=sel.lessons[state.selLi];
-const isDone=state.prog[les.id];
-html+=`<div style="animation:fadeIn .3s ease"><button onclick="setState({view:'detail'})"style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;color:${T.tx2};font-family:${T.fs};margin-bottom:16px">${icons.back()} Back to ${sel.title}</button><div style="background:${T.fg};border-radius:14px;padding:28px;border:1px solid ${T.bd};box-shadow:${T.sh}"><div style="margin-bottom:16px"><span style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:${T.txM};font-family:${T.fs}">LESSON ${state.selLi+1} OF ${sel.lessons.length}</span><h2 style="font-family:${T.ff};font-size:clamp(22px,4vw,28px);font-weight:400;color:${T.tx};margin-top:4px;margin-bottom:8px">${les.t}</h2><p style="font-size:14px;color:${T.tx2};font-family:${T.fs};line-height:1.5">${les.d}</p></div><div style="padding:20px;background:${T.fg2};border-radius:10px;border:1px solid ${T.bd};margin-bottom:16px"><p style="font-size:13px;color:${T.tx2};font-family:${T.fs};line-height:1.6">This is a placeholder lesson view. In the full implementation, this would contain the actual lesson content from Open Educational Resources.</p></div><div style="display:flex;gap:10px;justify-content:space-between">${state.selLi>0?`<button onclick="setState({selLi:${state.selLi-1}})"style="padding:10px 20px;font-size:13px;font-weight:600;font-family:${T.fs};color:${T.tx2};background:white;border:1px solid ${T.bd};border-radius:${T.rs}px">Previous</button>`:'<div></div>'}<button onclick="toggle('${les.id}');if(!${isDone})addXp(50)"style="padding:10px 24px;font-size:13px;font-weight:600;font-family:${T.fs};color:white;background:${isDone?'#15803d':T.acc};border-radius:${T.rs}px">${isDone?icons.check(14)+' Completed':'Mark Complete'}</button>${state.selLi<sel.lessons.length-1?`<button onclick="setState({selLi:${state.selLi+1}})"style="padding:10px 20px;font-size:13px;font-weight:600;font-family:${T.fs};color:${T.tx2};background:white;border:1px solid ${T.bd};border-radius:${T.rs}px">Next</button>`:'<div></div>'}</div></div></div>`;
+function escapeHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+function escapeAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
 
-html+=`</main><footer style="text-align:center;padding:14px 20px 28px"><p style="font-size:11px;color:${T.txM};font-family:${T.fs}">HZL Academy - Built by Ryann Murphy. Powered by Open Educational Resources.</p></footer></div>`;
-
-document.getElementById('app').innerHTML=html;
-
-const searchInput=document.getElementById('searchInput');
-if(searchInput){searchInput.addEventListener('input',e=>setState({search:e.target.value}))}
-}
-
-window.setState=setState;
-window.addXp=addXp;
-window.toggle=toggle;
-window.delAc=delAc;
-window.enrollSubject=function(subj){enroll(subj)};
-
+window.setState = setState;
+window.markRead = markRead;
 render();
 </script>
 </body>
