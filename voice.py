@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-HZL AI · Voice Stack  (voice.py)
+Scatter · Voice stack (voice.py)
 Platform-aware: auto-detects Windows vs Linux and uses the right audio backend.
   - Windows: sounddevice + soundfile (laptop mic/speakers)
   - Linux:   arecord / aplay (ALSA, Pi cluster)
 
-Patched for hazel-v5:
-  - Voice ID locked to Uc7anshoV8mdBhDnEZEX (Hazel)
+Patched for Scatter OS (ui/scatter.html):
+  - Voice ID locked to Uc7anshoV8mdBhDnEZEX (Scatter)
   - start_listening() / stop_listening() hooks for WS mic control
   - Strips action tags and markdown before speaking
 """
@@ -35,7 +35,7 @@ if PLATFORM == "Windows":
 
 # ── CONFIG ─────────────────────────────────────────────────────────────────
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
-ELEVENLABS_VOICE_ID = "Uc7anshoV8mdBhDnEZEX"          # Hazel — DO NOT CHANGE
+ELEVENLABS_VOICE_ID = "Uc7anshoV8mdBhDnEZEX"          # Scatter — DO NOT CHANGE
 ELEVENLABS_MODEL    = "eleven_turbo_v2"
 ELEVENLABS_FORMAT   = "mp3_44100_128"
 

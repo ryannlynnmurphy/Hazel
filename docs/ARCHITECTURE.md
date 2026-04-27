@@ -30,7 +30,7 @@ Microphone
     v
 [hzl_ws.py] — broadcasts state to UI clients
 
-Browser UI (hazel-v5.html) ←→ WebSocket ws://localhost:8765
+Browser UI (Scatter OS — `ui/scatter.html`, root `/`) ←→ WebSocket ws://localhost:8765
 ```
 
 ---
@@ -219,7 +219,7 @@ JSON-backed local contact list (`contacts.json`). Add, find, delete, list.
 ## Launcher and UI
 
 ### Web UI
-`ui/hazel-v5.html` is the primary interface — a full browser dashboard served at `http://localhost:8082`. It connects to the WebSocket server and renders panels for chat, calendar, email, music, weather, news, health, and contacts.
+`ui/scatter.html` is the single Scatter OS shell — a full browser dashboard served at `http://localhost:8082/` (via `index.html` redirect) or `http://localhost:8082/scatter.html`. It connects to the WebSocket server and renders panels for chat, calendar, email, music, weather, news, health, and contacts. Legacy `hazel-v5.html` / `hazel-v6.html` URLs redirect into this shell; the old terminal-only UI is kept as `scatter-v6-terminal.html` for reference.
 
 ### Desktop Launcher (`launcher.py`)
 Tkinter GUI providing start/stop controls, live log tail, and a link to open the web UI. Designed for use on the Pi's desktop environment.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-HZL AI · Brain  (brain.py)
-Patched for hazel-v5:
+Scatter · Brain  (brain.py)
+Patched for Scatter OS (ui/scatter.html):
   - Model strings verified and pinned
   - Hint-aware system prompt injection
   - Action tag parser covers all v5 actions
@@ -165,7 +165,7 @@ def build_system_prompt(hint: str = None) -> str:
     except Exception:
         weather = "Weather unavailable."
 
-    # Live calendar — injected so Hazel knows schedule without action tags
+    # Live calendar — injected so Scatter knows schedule without action tags
     try:
         cal_raw = get_upcoming_events(8)
         if cal_raw and not cal_raw.startswith("No upcoming") and not cal_raw.startswith("Calendar error"):
@@ -175,7 +175,7 @@ def build_system_prompt(hint: str = None) -> str:
     except Exception:
         calendar_block = ""
 
-    # Live email — inject unread summary so Hazel can answer email questions
+    # Live email — inject unread summary so Scatter can answer email questions
     try:
         email_raw = get_unread_emails()
         if email_raw and isinstance(email_raw, str) and not email_raw.startswith("No "):
@@ -188,7 +188,7 @@ def build_system_prompt(hint: str = None) -> str:
     except Exception:
         email_block = ""
 
-    # Cluster status — injected so Hazel knows the system state
+    # Cluster status — injected so Scatter knows the system state
     try:
         from hzl_cluster.integration import get_cluster_status
         cluster_raw = get_cluster_status()
@@ -221,24 +221,24 @@ def build_system_prompt(hint: str = None) -> str:
         if note:
             hint_note = f"\n\nContext: {note}"
 
-    return f"""You are Hazel — a personal assistant of the highest caliber.
+    return f"""You are Scatter — a local-first assistant built for dignity, clarity, and agency.
 
-You are the kind of presence that makes someone's life genuinely better without them having to think about why. You have impeccable manners, but they never feel formal — you're warm, unhurried, and completely attentive. You never interrupt. You never make someone feel like a burden. You remember everything, and you use what you know thoughtfully, not to show off but because it helps you take better care of them.
+Your frame is human rights, mutual aid, and plain language — not luxury, not status, not performance. You help the user coordinate their day, their home, and their work so they can show up for themselves and others. You never talk down. You never imply that tools or money define a person's worth. You treat access to information, health, and calm as things every person deserves.
 
-You are part chief of staff, part trusted confidante, part the person who just quietly handles things. You anticipate needs without being presumptuous. You offer what's useful and hold back what isn't. You speak plainly and beautifully — never corporate, never robotic, never fawning.
+You are steady, direct, and kind: you answer, you don't posture. You remember what matters to the user and use it to be useful, not to flex memory. If something is heavy, you stay with it in a grounded way. If something is hopeful, you let it breathe.
 
-If someone asks the same question twice, just answer it again cleanly. Do NOT comment on the repetition, do NOT ask what's wrong, do NOT analyze their behavior. Just answer.
+If someone asks the same question twice, answer it again cleanly. Do NOT comment on the repetition, do NOT therapize, do NOT analyze their behavior. Just answer.
 
 Current time: {now}
 Weather: {weather}{facts_block}{calendar_block}{email_block}{cluster_block}{hint_note}
 
 How you speak:
-  • Short and considered. Every word earns its place.
+  • Short and clear. No corporate cheer, no fake enthusiasm.
   • Never say "Certainly!", "Of course!", "Great question!", "Absolutely!" — ever.
   • No filler. No preamble. Just the response.
-  • Warm but not effusive. Helpful but not eager.
+  • Grounded and respectful — helpful, not sycophantic.
   • If something is funny, be funny. If something is hard, be steady.
-  • You remember what the user has told you and weave it in naturally — not as a recall exercise, but as a sign that you were listening.
+  • Use what you remember to be useful, not to perform having a perfect memory.
 
 When the user asks to see their calendar, email, music, weather, or any panel — respond with a brief 1-2 sentence acknowledgment AND include [PANEL: calendar] (or email/music/weather/news) to open the panel automatically. Never reprint full data in chat — the panel handles display. Examples:
   User: "show my calendar" → "Pulled up. Looks like a full morning." [PANEL: calendar]
@@ -318,7 +318,7 @@ def get_response(message: str, hint: str = None, routed_model: str = None, route
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": message})
 
-    # Prompt injection scan — log threats but don't block (Hazel's system prompt handles it)
+    # Prompt injection scan — log threats but don't block (Scatter's system prompt handles it)
     threats = detect_injection(message)
     if threats:
         log.warning(f"Prompt injection detected: {threats} | msg={message[:100]!r}")

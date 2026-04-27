@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-HZL AI · WebSocket Server  (hzl_ws.py)
-Patched for hazel-v5.html
+Scatter · WebSocket server (hzl_ws.py)
+Patched for ui/scatter.html (Scatter OS)
 
 Message contract (UI → server):
   { type: 'chat',            message: str, hint: str }
@@ -68,7 +68,7 @@ except ImportError:
     logging.warning("voice.py not found — mic control disabled")
     VOICE_AVAILABLE = False
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [HZL-WS] %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [Scatter-WS] %(message)s')
 log = logging.getLogger(__name__)
 
 # Track all connected clients
@@ -240,7 +240,7 @@ async def handle_queue_action(cmd: str, params: dict) -> None:
 async def handle_chat(ws: ServerConnection, message: str, hint: str = None):
     """Process a chat message through brain.py and stream response back."""
     if _chat_lock.locked():
-        log.info("Hazel busy -- dropping message")
+        log.info("Scatter busy -- dropping message")
         return
     async with _chat_lock:
         await _handle_chat_inner(ws, message, hint)
@@ -701,7 +701,7 @@ async def main():
     host = os.getenv("HZL_WS_HOST", "0.0.0.0")
     port = int(os.getenv("HZL_WS_PORT", "8765"))
 
-    log.info(f"HZL WebSocket server starting on ws://{host}:{port}")
+    log.info(f"Scatter WebSocket server starting on ws://{host}:{port}")
     async with websockets.serve(handle_connection, host, port):
         log.info("Ready. Waiting for connections...")
         await asyncio.Future()  # run forever

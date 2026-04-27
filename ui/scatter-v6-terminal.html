@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en" class="scatter-os scatter-v6">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a" />
+<title>Scatter :: v6</title>
+<link rel="stylesheet" href="scatter-theme.css" />
+<style>
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── VARIABLES ─── */
+:root {
+  --bg:         #0a0a0a;
+  --bg-2:       #0f0f0f;
+  --bg-3:       #141414;
+  --green:      #1aff1a;
+  --green-dim:  #1a5a1a;
+  --green-bright: #33ff33;
+  --green-mid:  #22aa22;
+  --text-chat:  #d4d4d4;
+  --text-muted: #4a4a4a;
+  --scanline:   rgba(0, 255, 0, 0.015);
+  --mono:       'Courier New', Courier, monospace;
+  --sans:       system-ui, -apple-system, sans-serif;
+  --status-h:   34px;
+  --input-h:    52px;
+}
+
+/* ─── BASE ─── */
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--green);
+  font-family: var(--mono);
+  overflow: hidden;
+}
+
+/* ─── SCANLINE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scanline) 2px,
+    var(--scanline) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ─── PHOSPHOR GLOW (subtle) ─── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    rgba(26, 255, 26, 0.025) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ─── STATUS BAR ─── */
+#status-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--status-h);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--green-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--green-dim);
+  letter-spacing: 0.08em;
+}
+
+#status-left { display: flex; align-items: center; gap: 6px; }
+
+#status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+#status-indicator.thinking {
+  background: #ffaa00;
+  box-shadow: 0 0 6px #ffaa00;
+  animation: pulse-dot-amber 0.8s ease-in-out infinite;
+}
+
+#status-indicator.error {
+  background: #ff3333;
+  box-shadow: 0 0 6px #ff3333;
+  animation: none;
+}
+
+#status-model { color: var(--green-mid); }
+#status-tier  { color: var(--green-dim); }
+#status-time  { color: var(--green-dim); font-variant-numeric: tabular-nums; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+@keyframes pulse-dot-amber {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* ─── CHAT FEED ─── */
+#chat-feed {
+  position: fixed;
+  top: var(--status-h);
+  bottom: var(--input-h);
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  scroll-behavior: smooth;
+}
+
+/* scrollbar */
+#chat-feed::-webkit-scrollbar { width: 4px; }
+#chat-feed::-webkit-scrollbar-track { background: transparent; }
+#chat-feed::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 2px; }
+
+/* ─── ASCII FACE ─── */
+#face-block {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--green);
+  text-shadow:
+    0 0 8px rgba(26, 255, 26, 0.6),
+    0 0 20px rgba(26, 255, 26, 0.2);
+  margin-bottom: 28px;
+  padding: 20px 0 4px;
+  white-space: pre;
+  letter-spacing: 0.02em;
+  animation: face-appear 0.6s ease-out both;
+  user-select: none;
+}
+
+@keyframes face-appear {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.face-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--green-dim);
+  margin-bottom: 4px;
+}
+
+/* ─── MESSAGE ROWS ─── */
+.msg-row {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(26, 90, 26, 0.18);
+  animation: msg-in 0.25s ease-out both;
+}
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.msg-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--green-dim);
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msg-label::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 40px;
+  background: var(--green-dim);
+  opacity: 0.4;
+}
+
+.msg-text {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 680px;
+}
+
+.msg-row.user .msg-label { color: var(--green-dim); }
+.msg-row.user .msg-text  { color: var(--text-chat); }
+
+.msg-row.scatter .msg-label { color: var(--green-mid); }
+.msg-row.scatter .msg-text  {
+  color: var(--green-bright);
+  text-shadow: 0 0 12px rgba(51, 255, 51, 0.12);
+}
+
+/* ─── THINKING INDICATOR ─── */
+#thinking-row {
+  display: none;
+  flex-direction: column;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(26, 90, 26, 0.18);
+}
+
+#thinking-row.visible { display: flex; }
+
+.thinking-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--green-mid);
+  margin-bottom: 5px;
+}
+
+.thinking-dots {
+  font-family: var(--mono);
+  font-size: 18px;
+  color: var(--green);
+  letter-spacing: 0.5em;
+  text-shadow: 0 0 10px rgba(26, 255, 26, 0.5);
+}
+
+.thinking-dots span {
+  display: inline-block;
+  animation: dot-blink 1.2s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-blink {
+  0%, 80%, 100% { opacity: 0.1; }
+  40%           { opacity: 1; }
+}
+
+/* ─── CARD ROW ─── */
+.card-row {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(26, 90, 26, 0.18);
+  animation: msg-in 0.25s ease-out both;
+}
+
+/* ─── RICH CARD BASE ─── */
+.rich-card {
+  border: 1px solid #1a3a1a;
+  box-shadow: 0 0 12px rgba(26, 255, 26, 0.05);
+  background: #0d120d;
+  border-radius: 8px;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  max-width: 440px;
+  color: var(--green-bright);
+}
+
+.rich-card .card-header {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--green-dim);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1a3a1a;
+}
+
+/* ─── WEATHER CARD ─── */
+.card-weather .wx-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.card-weather .wx-temp {
+  font-size: 36px;
+  font-family: var(--mono);
+  color: var(--green);
+  text-shadow: 0 0 10px rgba(26, 255, 26, 0.35);
+  line-height: 1;
+}
+
+.card-weather .wx-cond {
+  font-size: 12px;
+  color: #3a8a3a;
+  text-align: right;
+}
+
+.card-weather .wx-icon {
+  font-size: 26px;
+  margin-left: 8px;
+}
+
+.card-weather .wx-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+
+.card-weather .wx-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--green-dim);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.card-weather .wx-stat-val {
+  color: var(--green-bright);
+}
+
+.card-weather .wx-hourly {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-top: 8px;
+  border-top: 1px solid #1a3a1a;
+  font-size: 11px;
+}
+
+.card-weather .wx-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 38px;
+  color: #3a7a3a;
+}
+
+.card-weather .wx-hour-time { font-size: 9px; color: var(--green-dim); }
+.card-weather .wx-hour-icon { font-size: 14px; }
+.card-weather .wx-hour-temp { color: var(--green-bright); }
+
+/* ─── SPOTIFY CARD ─── */
+.card-spotify .sp-top {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: flex-start;
+}
+
+.card-spotify .sp-art {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #1a5a1a;
+  box-shadow: 0 0 10px rgba(26, 255, 26, 0.1);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--green-dim);
+  background: #080d08;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.card-spotify .sp-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-spotify .sp-info { flex: 1; min-width: 0; }
+
+.card-spotify .sp-track {
+  font-size: 14px;
+  color: var(--green);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.card-spotify .sp-artist {
+  font-size: 11px;
+  color: #3a8a3a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.card-spotify .sp-album {
+  font-size: 10px;
+  color: var(--green-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-spotify .sp-progress-bar {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #2a6a2a;
+  letter-spacing: 0;
+  overflow: hidden;
+}
+
+.card-spotify .sp-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--green-dim);
+  margin-bottom: 10px;
+}
+
+.card-spotify .sp-controls {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.card-spotify .sp-btn {
+  background: none;
+  border: none;
+  color: var(--green-dim);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 16px;
+  transition: color 0.15s, text-shadow 0.15s;
+  font-family: var(--mono);
+}
+
+.card-spotify .sp-btn:hover {
+  color: var(--green);
+  text-shadow: 0 0 8px rgba(26, 255, 26, 0.5);
+}
+
+.card-spotify .sp-btn.active {
+  color: var(--green);
+  text-shadow: 0 0 10px rgba(26, 255, 26, 0.6);
+}
+
+/* ─── CALENDAR CARD ─── */
+.card-calendar .cal-list { display: flex; flex-direction: column; gap: 6px; }
+
+.card-calendar .cal-event {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.card-calendar .cal-dot {
+  color: var(--green);
+  font-size: 8px;
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+}
+
+.card-calendar .cal-time {
+  color: var(--green-dim);
+  font-size: 11px;
+  min-width: 58px;
+  flex-shrink: 0;
+}
+
+.card-calendar .cal-name {
+  color: var(--green-bright);
+}
+
+.card-calendar .cal-empty {
+  color: var(--green-dim);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ─── EMAIL CARD ─── */
+.card-email .email-list { display: flex; flex-direction: column; gap: 8px; }
+
+.card-email .email-item {
+  border-left: 2px solid #1a4a1a;
+  padding-left: 10px;
+}
+
+.card-email .email-from {
+  font-size: 11px;
+  color: var(--green-mid);
+  margin-bottom: 2px;
+}
+
+.card-email .email-subj {
+  font-size: 12px;
+  color: var(--green-bright);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-email .email-snip {
+  font-size: 10px;
+  color: var(--green-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── NEWS CARD ─── */
+.card-news .news-list { display: flex; flex-direction: column; gap: 8px; }
+
+.card-news .news-item { }
+
+.card-news .news-title {
+  font-size: 12px;
+  color: var(--green-bright);
+  margin-bottom: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-news .news-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-news .news-title a:hover { text-decoration: underline; }
+
+.card-news .news-source {
+  font-size: 10px;
+  color: var(--green-dim);
+  letter-spacing: 0.08em;
+}
+
+/* ─── CARD PLACEHOLDER (fallback) ─── */
+.card-placeholder {
+  border: 1px solid var(--green-dim);
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--green-dim);
+  max-width: 360px;
+  letter-spacing: 0.05em;
+}
+
+.card-placeholder .card-type {
+  color: var(--green);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  margin-bottom: 6px;
+}
+
+/* ─── INPUT BAR ─── */
+#input-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--input-h);
+  background: var(--bg-2);
+  border-top: 1px solid var(--green-dim);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  z-index: 100;
+}
+
+#input-prompt {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--green);
+  text-shadow: 0 0 8px rgba(26, 255, 26, 0.5);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+#chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text-chat);
+  caret-color: var(--green);
+  line-height: 1;
+}
+
+#chat-input::placeholder {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+/* blinking cursor line */
+#input-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 16px;
+  width: 0;
+  height: 1px;
+  background: var(--green);
+  box-shadow: 0 0 4px var(--green);
+}
+
+/* ─── MIC BUTTON ─── */
+#mic-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--green-dim);
+  color: var(--green-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  font-family: var(--mono);
+}
+
+#mic-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 8px rgba(26, 255, 26, 0.3);
+}
+
+#mic-btn.active {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(26, 255, 26, 0.5);
+  animation: mic-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(26, 255, 26, 0.4); }
+  50%       { box-shadow: 0 0 16px rgba(26, 255, 26, 0.8); }
+}
+
+/* ─── SEND BUTTON (hidden, Enter-triggered) ─── */
+#send-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--green-dim);
+  color: var(--green-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.05em;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+#send-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 8px rgba(26, 255, 26, 0.3);
+}
+
+/* ─── WS STATUS FLASH ─── */
+#ws-flash {
+  position: fixed;
+  top: calc(var(--status-h) + 8px);
+  right: 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border: 1px solid;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 200;
+  transition: opacity 0.3s;
+}
+
+#ws-flash.show { opacity: 1; }
+#ws-flash.connected    { color: var(--green);   border-color: var(--green-dim);   background: rgba(26,90,26,0.2); }
+#ws-flash.disconnected { color: #ff4444;         border-color: #882222;            background: rgba(80,10,10,0.3); }
+#ws-flash.reconnecting { color: #ffaa00;         border-color: #886600;            background: rgba(60,40,0,0.3); }
+
+/* v6: keep terminal layout; shared credo is hidden here (v6 is minimal) */
+html.scatter-v6 .scatter-credo { display: none !important; }
+</style>
+</head>
+<body>
+<div id="crt-scan" aria-hidden="true"></div>
+<div id="crt-vig" aria-hidden="true"></div>
+<div class="scatter-credo" role="note">Dignity · aid · open stack</div>
+
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <div id="status-left">
+    <div id="status-indicator"></div>
+    <span>SCATTER</span>
+    <span style="color: var(--green-dim)">::</span>
+    <span id="status-model">v6</span>
+    <span style="color: var(--green-dim)">::</span>
+    <span id="status-tier">—</span>
+  </div>
+  <div id="status-time">--:--:--</div>
+</div>
+
+<!-- WS FLASH -->
+<div id="ws-flash"></div>
+
+<!-- CHAT FEED -->
+<div id="chat-feed">
+
+  <!-- ASCII FACE -->
+  <div id="face-block">
+    <div class="face-label">SCATTER // IDLE</div>
+    <pre id="face-pre">╔═══════════╗
+║  •     •  ║
+║           ║
+║   ╰───╯   ║
+╚═══════════╝</pre>
+  </div>
+
+  <!-- Thinking row (hidden by default) -->
+  <div id="thinking-row">
+    <div class="thinking-label">SCATTER</div>
+    <div class="thinking-dots">
+      <span>·</span><span>·</span><span>·</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- INPUT BAR -->
+<div id="input-bar">
+  <span id="input-prompt">&gt;&nbsp;</span>
+  <input
+    id="chat-input"
+    type="text"
+    placeholder="message scatter…"
+    autocomplete="off"
+    spellcheck="false"
+    autofocus
+  />
+  <button id="send-btn" title="Send (Enter)">↵</button>
+  <button id="mic-btn" title="Voice input">♦</button>
+</div>
+
+<script src="scatter-base.js"></script>
+<script>
+/* ─── FACES ─── */
+const FACES = {
+  idle: {
+    label: 'SCATTER // IDLE',
+    art:
+`╔═══════════╗
+║  •     •  ║
+║           ║
+║   ╰───╯   ║
+╚═══════════╝`
+  },
+  thinking: {
+    label: 'SCATTER // THINKING',
+    art:
+`╔═══════════╗
+║  ─     ─  ║
+║           ║
+║   · · ·   ║
+╚═══════════╝`
+  },
+  speaking: {
+    label: 'SCATTER // SPEAKING',
+    art:
+`╔═══════════╗
+║  •     •  ║
+║           ║
+║   ╰─▽─╯   ║
+╚═══════════╝`
+  },
+  happy: {
+    label: 'SCATTER // HAPPY',
+    art:
+`╔═══════════╗
+║  ◡     ◡  ║
+║           ║
+║   ╰───╯   ║
+╚═══════════╝`
+  },
+  error: {
+    label: 'SCATTER // ERROR',
+    art:
+`╔═══════════╗
+║  ×     ×  ║
+║           ║
+║   ═══     ║
+╚═══════════╝`
+  },
+  listening: {
+    label: 'SCATTER // LISTENING',
+    art:
+`╔═══════════╗
+║  •     •  ║
+║           ║
+║   ╰─○─╯   ║
+╚═══════════╝`
+  }
+};
+
+/* ─── STATE ─── */
+let ws = null;
+let reconnectTimer = null;
+let currentFace = 'idle';
+let wsFlashTimer = null;
+
+/* ─── DOM REFS ─── */
+const chatFeed      = document.getElementById('chat-feed');
+const thinkingRow   = document.getElementById('thinking-row');
+const facePre       = document.getElementById('face-pre');
+const faceBlock     = document.getElementById('face-block');
+const faceLabel     = faceBlock.querySelector('.face-label');
+const chatInput     = document.getElementById('chat-input');
+const statusTime    = document.getElementById('status-time');
+const statusModel   = document.getElementById('status-model');
+const statusTier    = document.getElementById('status-tier');
+const statusDot     = document.getElementById('status-indicator');
+const wsFlash       = document.getElementById('ws-flash');
+const sendBtn       = document.getElementById('send-btn');
+const micBtn        = document.getElementById('mic-btn');
+
+/* ─── CLOCK ─── */
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  statusTime.textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ─── FACE ─── */
+function setFace(state) {
+  const f = FACES[state] || FACES.idle;
+  currentFace = state;
+
+  // animate face transition
+  facePre.style.opacity = '0';
+  faceLabel.style.opacity = '0';
+  setTimeout(() => {
+    facePre.textContent = f.art;
+    faceLabel.textContent = f.label;
+    facePre.style.transition = 'opacity 0.3s';
+    faceLabel.style.transition = 'opacity 0.3s';
+    facePre.style.opacity = '1';
+    faceLabel.style.opacity = '1';
+  }, 180);
+}
+
+/* ─── FLASH ─── */
+function showFlash(msg, cls) {
+  clearTimeout(wsFlashTimer);
+  wsFlash.textContent = msg;
+  wsFlash.className = 'show ' + cls;
+  wsFlashTimer = setTimeout(() => { wsFlash.className = ''; }, 3200);
+}
+
+/* ─── SCROLL ─── */
+function scrollBottom() {
+  chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
+}
+
+/* ─── ADD MESSAGE ─── */
+function addMessage(role, text) {
+  // hide thinking
+  thinkingRow.classList.remove('visible');
+
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? 'YOU' : 'SCATTER';
+
+  const body = document.createElement('div');
+  body.className = 'msg-text';
+  body.textContent = text;
+
+  row.appendChild(label);
+  row.appendChild(body);
+
+  // insert before thinking-row
+  chatFeed.insertBefore(row, thinkingRow);
+  scrollBottom();
+  return row;
+}
+
+/* ─── RENDER CARD ─── */
+function renderCard(cardType, data) {
+  switch (cardType) {
+    case 'weather': return renderWeatherCard(data);
+    case 'spotify': return renderSpotifyCard(data);
+    case 'calendar': return renderCalendarCard(data);
+    case 'email': return renderEmailCard(data);
+    case 'news': return renderNewsCard(data);
+    default: return renderFallbackCard(cardType, data);
+  }
+}
+
+function fmtMs(ms) {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = String(total % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function progressBar(progressMs, durationMs, width) {
+  const ratio = durationMs > 0 ? Math.min(progressMs / durationMs, 1) : 0;
+  const filled = Math.round(ratio * width);
+  const empty = width - filled;
+  return '█'.repeat(filled) + '░'.repeat(empty);
+}
+
+function renderWeatherCard(d) {
+  const hourlyHTML = (d.hourly || []).slice(0, 6).map(h =>
+    `<div class="wx-hour">
+      <span class="wx-hour-time">${h.label || ''}</span>
+      <span class="wx-hour-icon">${h.icon || ''}</span>
+      <span class="wx-hour-temp">${h.temp != null ? h.temp + '°' : ''}</span>
+    </div>`
+  ).join('');
+
+  const div = document.createElement('div');
+  div.className = 'rich-card card-weather';
+  div.innerHTML = `
+    <div class="card-header">[ WEATHER ]</div>
+    <div class="wx-main">
+      <div class="wx-temp">${d.temp != null ? d.temp + '°' : '--°'}</div>
+      <div class="wx-cond">
+        ${d.cond || ''}
+        <span class="wx-icon">${d.icon || ''}</span>
+      </div>
+    </div>
+    <div class="wx-stats">
+      <div>
+        <span class="wx-stat-label">FEELS</span>
+        <span class="wx-stat-val">${d.feels != null ? d.feels + '°' : '--'}</span>
+      </div>
+      <div>
+        <span class="wx-stat-label">HUM</span>
+        <span class="wx-stat-val">${d.hum != null ? d.hum + '%' : '--'}</span>
+      </div>
+      <div>
+        <span class="wx-stat-label">WIND</span>
+        <span class="wx-stat-val">${d.wind != null ? d.wind + ' mph' : '--'}</span>
+      </div>
+      <div>
+        <span class="wx-stat-label">UV</span>
+        <span class="wx-stat-val">${d.uv != null ? d.uv : '--'}</span>
+      </div>
+    </div>
+    ${hourlyHTML ? `<div class="wx-hourly">${hourlyHTML}</div>` : ''}
+  `;
+  return div;
+}
+
+function renderSpotifyCard(d) {
+  const BAR_WIDTH = 24;
+  const bar = progressBar(d.progress_ms || 0, d.duration_ms || 1, BAR_WIDTH);
+  const artHTML = d.art
+    ? `<img src="${d.art}" alt="album art" />`
+    : `♪`;
+
+  const div = document.createElement('div');
+  div.className = 'rich-card card-spotify';
+  div.innerHTML = `
+    <div class="card-header">[ SPOTIFY${d.playing ? ' · PLAYING' : ' · PAUSED'} ]</div>
+    <div class="sp-top">
+      <div class="sp-art">${artHTML}</div>
+      <div class="sp-info">
+        <div class="sp-track">${d.track || '—'}</div>
+        <div class="sp-artist">${d.artist || '—'}</div>
+        <div class="sp-album">${d.album || ''}</div>
+      </div>
+    </div>
+    <div class="sp-progress-bar">[${bar}]</div>
+    <div class="sp-times">
+      <span>${fmtMs(d.progress_ms || 0)}</span>
+      <span>${fmtMs(d.duration_ms || 0)}</span>
+    </div>
+    <div class="sp-controls">
+      <button class="sp-btn" data-action="prev" title="Previous">⏮</button>
+      <button class="sp-btn ${d.playing ? 'active' : ''}" data-action="${d.playing ? 'pause' : 'play'}" title="${d.playing ? 'Pause' : 'Play'}">${d.playing ? '⏸' : '▶'}</button>
+      <button class="sp-btn" data-action="next" title="Next">⏭</button>
+    </div>
+  `;
+
+  div.querySelectorAll('.sp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'spotify_action', action }));
+      }
+    });
+  });
+
+  return div;
+}
+
+function renderCalendarCard(d) {
+  const events = d.events || [];
+  const listHTML = events.length === 0
+    ? `<div class="cal-empty">no events</div>`
+    : events.map(e =>
+        `<div class="cal-event">
+          <span class="cal-dot">●</span>
+          <span class="cal-time">${e.time || ''}</span>
+          <span class="cal-name">${e.name || ''}</span>
+        </div>`
+      ).join('');
+
+  const div = document.createElement('div');
+  div.className = 'rich-card card-calendar';
+  div.innerHTML = `
+    <div class="card-header">[ CALENDAR ]</div>
+    <div class="cal-list">${listHTML}</div>
+  `;
+  return div;
+}
+
+function renderEmailCard(d) {
+  const emails = d.emails || [];
+  const listHTML = emails.length === 0
+    ? `<div class="cal-empty">no messages</div>`
+    : emails.map(e =>
+        `<div class="email-item">
+          <div class="email-from">FROM: ${e.from || '—'}</div>
+          <div class="email-subj">${e.subj || ''}</div>
+          <div class="email-snip">${e.snippet || ''}</div>
+        </div>`
+      ).join('');
+
+  const div = document.createElement('div');
+  div.className = 'rich-card card-email';
+  div.innerHTML = `
+    <div class="card-header">[ EMAIL ]</div>
+    <div class="email-list">${listHTML}</div>
+  `;
+  return div;
+}
+
+function renderNewsCard(d) {
+  const items = d.news || [];
+  const listHTML = items.length === 0
+    ? `<div class="cal-empty">no news</div>`
+    : items.map(n => {
+        const titleContent = n.url
+          ? `<a href="${n.url}" target="_blank" rel="noopener">${n.title || ''}</a>`
+          : (n.title || '');
+        return `<div class="news-item">
+          <div class="news-title">${titleContent}</div>
+          <div class="news-source">${n.source || ''}</div>
+        </div>`;
+      }).join('');
+
+  const div = document.createElement('div');
+  div.className = 'rich-card card-news';
+  div.innerHTML = `
+    <div class="card-header">[ NEWS ]</div>
+    <div class="news-list">${listHTML}</div>
+  `;
+  return div;
+}
+
+function renderFallbackCard(cardType, data) {
+  const div = document.createElement('div');
+  div.className = 'card-placeholder';
+  div.innerHTML = `
+    <div class="card-type">[ ${cardType.toUpperCase()} ]</div>
+    <div style="white-space:pre;overflow:hidden;max-height:60px;opacity:0.6;font-size:10px;margin-top:4px;">${JSON.stringify(data, null, 2).slice(0, 200)}</div>
+  `;
+  return div;
+}
+
+/* ─── ADD CARD ─── */
+function addCard(cardType, data) {
+  thinkingRow.classList.remove('visible');
+
+  const row = document.createElement('div');
+  row.className = 'card-row';
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = 'SCATTER';
+
+  const cardEl = renderCard(cardType, data);
+
+  row.appendChild(label);
+  row.appendChild(cardEl);
+
+  chatFeed.insertBefore(row, thinkingRow);
+  scrollBottom();
+}
+
+/* ─── SHOW THINKING ─── */
+function showThinking() {
+  thinkingRow.classList.add('visible');
+  scrollBottom();
+}
+
+/* ─── SEND ─── */
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  chatInput.value = '';
+  addMessage('user', text);
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'chat', message: text }));
+    showThinking();
+    setFace('thinking');
+  } else {
+    const errRow = addMessage('scatter', '[not connected — reconnecting...]');
+    setFace('error');
+    connect();
+  }
+}
+
+/* ─── WEBSOCKET ─── */
+function connect() {
+  if (ws) {
+    ws.onclose = null;
+    ws.onerror = null;
+    try { ws.close(); } catch(e) {}
+  }
+
+  ws = new WebSocket(typeof SCATTER !== 'undefined' ? SCATTER.wsUrl() : 'ws://localhost:8765');
+
+  ws.onopen = () => {
+    clearTimeout(reconnectTimer);
+    statusDot.className = '';          // idle/connected
+    setFace('idle');
+    showFlash('CONNECTED', 'connected');
+  };
+
+  ws.onmessage = (evt) => {
+    let msg;
+    try { msg = JSON.parse(evt.data); }
+    catch(e) { console.warn('Bad WS message:', evt.data); return; }
+
+    switch (msg.type) {
+
+      case 'response':
+        addMessage('scatter', msg.text || '');
+        setFace('speaking');
+        // update status bar tier
+        if (msg.tier) {
+          statusModel.textContent = msg.tier;
+          statusTier.textContent  = msg.tier_type || 'local';
+        }
+        // return to idle shortly after
+        setTimeout(() => setFace('idle'), 2200);
+        break;
+
+      case 'thinking':
+        showThinking();
+        setFace('thinking');
+        statusDot.className = 'thinking';
+        break;
+
+      case 'speaking':
+        setFace('speaking');
+        statusDot.className = '';
+        break;
+
+      case 'idle':
+        thinkingRow.classList.remove('visible');
+        setFace('idle');
+        statusDot.className = '';
+        break;
+
+      case 'face':
+        setFace(msg.state || 'idle');
+        if (msg.state === 'thinking') {
+          statusDot.className = 'thinking';
+          showThinking();
+        } else if (msg.state === 'error') {
+          statusDot.className = 'error';
+        } else {
+          statusDot.className = '';
+        }
+        break;
+
+      case 'card':
+        addCard(msg.card_type || 'unknown', msg.data || {});
+        setTimeout(() => setFace('idle'), 1200);
+        break;
+
+      default:
+        console.log('Unknown message type:', msg.type, msg);
+    }
+  };
+
+  ws.onclose = () => {
+    statusDot.className = 'error';
+    setFace('error');
+    showFlash('DISCONNECTED — retrying in 5s', 'disconnected');
+    reconnectTimer = setTimeout(connect, 5000);
+  };
+
+  ws.onerror = () => {
+    showFlash('CONNECTION ERROR', 'disconnected');
+  };
+}
+
+/* ─── INPUT HANDLERS ─── */
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+
+micBtn.addEventListener('click', () => {
+  // placeholder — voice will wire in later
+  micBtn.classList.toggle('active');
+  if (micBtn.classList.contains('active')) {
+    setFace('listening');
+  } else {
+    setFace('idle');
+  }
+});
+
+/* ─── INIT ─── */
+connect();
+</script>
+</body>
+</html>

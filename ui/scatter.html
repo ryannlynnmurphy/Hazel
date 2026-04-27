@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="en" class="scatter-os">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#030503" />
+<title>Scatter OS</title>
+<!-- Single Scatter OS shell (canonical: /scatter.html; / and legacy hazel-v* redirect here) -->
+<!-- Typography + terminal tokens: scatter-theme.css (VT323, Press Start 2P) -->
+<link rel="stylesheet" href="scatter-theme.css" />
+<style>
+:root {
+  --ink:       #141210;
+  --ink-2:     #2C2925;
+  --ink-3:     #514E48;
+  --ink-4:     #8A8680;
+  --ink-5:     #C4C0B8;
+  --cream:     #F6F3EE;
+  --cream-2:   #EDEAE3;
+  --cream-3:   #E2DDD5;
+  --gold:      #B8873A;
+  --gold-l:    #F2E4C8;
+  --rose:      #B87070;
+  --rose-l:    #F2E0E0;
+  --sage:      #6A8F78;
+  --sage-l:    #DFF0E6;
+  --sky:       #5C7FA8;
+  --sky-l:     #DDE9F5;
+  --r:         10px;
+  --panel-w:   360px;
+  --chat-w:    420px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'VT323', monospace;
+  background: var(--cream);
+  color: var(--ink);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── AMBIENT BACKGROUND ─── */
+#amb {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+}
+.orb {
+  position: absolute; border-radius: 50%; filter: blur(110px); pointer-events: none;
+}
+.o1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(184,135,58,.11) 0%, transparent 70%); top: -200px; left: -100px; animation: drift1 22s ease-in-out infinite; }
+.o2 { width: 450px; height: 450px; background: radial-gradient(circle, rgba(106,143,120,.08) 0%, transparent 70%); bottom: -80px; right: -80px; animation: drift2 28s ease-in-out infinite; }
+.o3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(184,112,112,.07) 0%, transparent 70%); top: 45%; left: 35%; animation: drift3 19s ease-in-out infinite; }
+@keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,35px)} }
+@keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-35px,-45px)} }
+@keyframes drift3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-30px)} }
+
+
+.news-cat-btn {
+  padding: 6px 12px; border-radius: 6px; border: 1px solid var(--cream-3);
+  background: transparent; font-family: 'VT323', monospace; font-size: 9px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-4);
+  cursor: pointer; transition: all .15s;
+}
+.news-cat-btn.active { background: var(--gold); color: white; border-color: var(--gold); }
+.news-cat-btn:hover:not(.active) { background: var(--cream); }
+/* ─── LAYOUT ─── */
+#shell {
+  position: relative; z-index: 1;
+  display: flex; height: 100vh;
+}
+
+/* ─── LEFT: CHAT COLUMN ─── */
+#chat-col {
+  width: var(--chat-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(20,18,16,.07);
+  background: rgba(246,243,238,.6);
+  backdrop-filter: blur(8px);
+}
+
+/* ─── FACE ─── */
+#face-wrap {
+  padding: 24px 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+#face-stage {
+  position: relative;
+  width: 64px; height: 64px;
+  flex-shrink: 0;
+}
+/* Aura ring — pulses with state */
+#aura {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity .6s;
+  pointer-events: none;
+}
+body.speaking  #aura { opacity: 1; background: radial-gradient(circle, rgba(184,135,58,.22) 0%, transparent 70%); animation: aura-pulse .65s ease-in-out infinite alternate; }
+body.listening #aura { opacity: 1; background: radial-gradient(circle, rgba(184,112,112,.22) 0%, transparent 70%); animation: aura-pulse 1.1s ease-in-out infinite alternate; }
+body.thinking  #aura { opacity: .5; background: radial-gradient(circle, rgba(106,143,120,.18) 0%, transparent 70%); }
+@keyframes aura-pulse { from{transform:scale(1)} to{transform:scale(1.12)} }
+
+/* The face itself — organic blob shape */
+#face-svg {
+  width: 64px; height: 64px;
+  position: relative; z-index: 2;
+}
+
+#face-meta {
+  flex: 1;
+  min-width: 0;
+}
+.scatter-wordmark {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: .12em;
+  color: var(--ink);
+  line-height: 1;
+}
+.scatter-wordmark em { font-style: italic; color: var(--gold); }
+#state-label {
+  font-family: 'VT323', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--ink-4);
+  letter-spacing: .1em;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#listen-bars {
+  display: flex; align-items: flex-end; gap: 1.5px; height: 10px;
+  opacity: 0; transition: opacity .3s;
+}
+body.listening #listen-bars { opacity: 1; }
+.lb { width: 2px; border-radius: 1px; background: var(--rose); }
+.lb:nth-child(1) { height:4px; animation: lba .44s ease-in-out infinite; }
+.lb:nth-child(2) { height:8px; animation: lba .44s ease-in-out infinite .09s; }
+.lb:nth-child(3) { height:10px;animation: lba .44s ease-in-out infinite .04s; }
+.lb:nth-child(4) { height:8px; animation: lba .44s ease-in-out infinite .13s; }
+.lb:nth-child(5) { height:5px; animation: lba .44s ease-in-out infinite .07s; }
+@keyframes lba { 0%,100%{transform:scaleY(.3)} 50%{transform:scaleY(1)} }
+
+/* ─── NAV PILLS ─── */
+#nav-row {
+  padding: 14px 24px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.nav-pill {
+  font-family: 'VT323', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: .07em;
+  color: var(--ink-4);
+  background: transparent;
+  border: 1px solid rgba(20,18,16,.1);
+  border-radius: 100px;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: all .18s;
+  display: flex; align-items: center; gap: 4px;
+}
+.nav-pill .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .5; }
+.nav-pill:hover { background: var(--cream-2); color: var(--ink-2); border-color: rgba(20,18,16,.18); }
+.nav-pill.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+/* ─── CHAT FEED ─── */
+#chat-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 24px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  scroll-behavior: smooth;
+}
+#chat-feed::-webkit-scrollbar { width: 2px; }
+#chat-feed::-webkit-scrollbar-thumb { background: var(--cream-3); }
+
+.msg-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  animation: msg-in .25s ease both;
+}
+@keyframes msg-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.msg-label {
+  font-family: 'VT323', monospace;
+  font-size: 9.5px;
+  font-weight: 300;
+  letter-spacing: .1em;
+  color: var(--ink-5);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.msg-user .msg-label { text-align: right; }
+
+.msg-body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.msg-scatter .msg-body { max-width: 340px; }
+.msg-user {
+  align-items: flex-end;
+}
+.msg-user .msg-body {
+  background: var(--ink);
+  color: var(--cream);
+  padding: 9px 14px;
+  border-radius: var(--r) var(--r) 3px var(--r);
+  font-size: 13.5px;
+  line-height: 1.6;
+  max-width: 300px;
+}
+
+/* thinking dots */
+.thinking-dots { display: flex; gap: 4px; padding: 6px 0; }
+.td { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-5); animation: td 1.2s ease-in-out infinite; }
+.td:nth-child(2){animation-delay:.18s} .td:nth-child(3){animation-delay:.36s}
+@keyframes td { 0%,60%,100%{opacity:.25;transform:scale(1)} 30%{opacity:1;transform:scale(1.3)} }
+
+/* ─── INPUT BAR ─── */
+#input-bar {
+  flex-shrink: 0;
+  padding: 10px 24px 20px;
+  border-top: 1px solid rgba(20,18,16,.06);
+}
+#input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid rgba(20,18,16,.1);
+  border-radius: 100px;
+  padding: 5px 5px 5px 16px;
+  transition: border-color .2s, box-shadow .2s;
+}
+#input-wrap:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184,135,58,.1);
+}
+#msg-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: 'VT323', monospace;
+  font-size: 13.5px; color: var(--ink);
+  caret-color: var(--gold);
+}
+#msg-input::placeholder { color: var(--ink-5); }
+.input-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .18s; flex-shrink: 0;
+}
+#mic-btn {
+  background: transparent;
+  border: 1px solid rgba(20,18,16,.1);
+  color: var(--ink-4);
+}
+#mic-btn:hover { background: var(--cream-2); color: var(--ink); }
+#mic-btn.active { background: var(--rose); border-color: var(--rose); color: white; animation: mic-pulse 1s ease infinite; }
+@keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(184,112,112,.4)} 50%{box-shadow:0 0 0 6px rgba(184,112,112,0)} }
+#send-btn { background: var(--ink); color: var(--cream); }
+#send-btn:hover { background: var(--gold); transform: scale(1.05); }
+#send-btn:active { transform: scale(.94); }
+
+/* ─── RIGHT: DASHBOARD ─── */
+#dash-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ─── DASH TOP BAR ─── */
+#dash-header {
+  padding: 20px 28px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+#dash-tab-row {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 0;
+}
+#dash-tab-row::-webkit-scrollbar { display: none; }
+.dash-tab {
+  font-family: 'VT323', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 7px 14px;
+  border-radius: var(--r) var(--r) 0 0;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-bottom: none;
+  transition: all .18s;
+  white-space: nowrap;
+  background: transparent;
+}
+.dash-tab:hover { color: var(--ink-2); }
+.dash-tab.active {
+  color: var(--ink);
+  background: white;
+  border-color: rgba(20,18,16,.08);
+  border-bottom-color: white;
+}
+#dash-clock {
+  font-family: 'VT323', monospace;
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--ink-4);
+  letter-spacing: .08em;
+  white-space: nowrap;
+  margin-left: 16px;
+  flex-shrink: 0;
+}
+
+/* ─── DASH CONTENT ─── */
+#dash-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 28px 28px;
+  background: white;
+  border-top: 1px solid rgba(20,18,16,.08);
+  margin: 0;
+}
+#dash-body::-webkit-scrollbar { width: 3px; }
+#dash-body::-webkit-scrollbar-thumb { background: var(--cream-3); border-radius: 2px; }
+
+.dash-view { display: none; padding-top: 24px; }
+.dash-view.active { display: block; }
+
+/* Section label */
+.sec-label {
+  font-family: 'VT323', monospace;
+  font-size: 9.5px;
+  font-weight: 300;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-5);
+  margin-bottom: 12px;
+  margin-top: 22px;
+}
+.sec-label:first-child { margin-top: 0; }
+
+/* ── WEATHER PANEL ── */
+.wx-hero {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
+}
+.wx-temp {
+  font-family: 'VT323', monospace;
+  font-size: 76px; font-weight: 400; line-height: 1; color: var(--ink);
+}
+.wx-right { display: flex; flex-direction: column; gap: 4px; }
+.wx-cond { font-size: 15px; color: var(--ink-3); font-weight: 400; }
+.wx-loc  { font-family:'DM Mono',monospace; font-size:10px; color: var(--ink-5); letter-spacing:.08em; }
+.wx-grid {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 20px;
+}
+.wx-cell {
+  background: var(--cream); border-radius: var(--r); padding: 10px 12px;
+}
+.wx-cell-lbl { font-family:'DM Mono',monospace; font-size:9px; color:var(--ink-5); text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; }
+.wx-cell-val { font-size:14px; font-weight:500; color:var(--ink); }
+.wx-hourly { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+.wx-hourly::-webkit-scrollbar{display:none}
+.wx-hr {
+  flex-shrink:0; text-align:center; background:var(--cream);
+  border-radius:var(--r); padding:8px 10px; min-width:52px;
+}
+.wx-hr-t { font-family:'DM Mono',monospace; font-size:9px; color:var(--ink-5); margin-bottom:5px; }
+.wx-hr-i { font-size:16px; margin-bottom:5px; }
+.wx-hr-v { font-size:12px; font-weight:500; color:var(--ink); }
+
+/* ── CALENDAR PANEL ── */
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.cal-nav { display: flex; gap: 8px; }
+.cal-nav-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--cream-3);
+  background: transparent; color: var(--ink-4); cursor: pointer; font-size: 14px;
+  transition: all .15s;
+}
+.cal-nav-btn:hover { background: var(--cream); color: var(--ink); }
+.cal-title-wrap { text-align: center; }
+.cal-date-big {
+  font-family: 'VT323', monospace;
+  font-size: 42px; font-weight: 400; line-height: 1; color: var(--ink); margin-bottom: 2px;
+}
+.cal-date-sub {
+  font-family: 'VT323', monospace; font-size: 11px; color: var(--ink-4); letter-spacing:.06em;
+}
+.cal-view-tabs {
+  display: flex; gap: 4px; margin-bottom: 20px; background: var(--cream); border-radius: 8px; padding: 4px;
+}
+.cal-view-tab {
+  flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 6px;
+  font-family: 'VT323', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-4); cursor: pointer; transition: all .15s;
+}
+.cal-view-tab.active { background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+/* Day View */
+.cal-day-timeline { position: relative; }
+.cal-hour-row {
+  display: flex; align-items: flex-start; min-height: 48px; border-top: 1px solid var(--cream-2);
+}
+.cal-hour-label {
+  width: 48px; flex-shrink: 0; font-family: 'VT323', monospace; font-size: 10px;
+  color: var(--ink-5); padding-top: 4px;
+}
+.cal-hour-content { flex: 1; position: relative; min-height: 48px; }
+.cal-event {
+  position: relative; margin: 2px 0;
+  padding: 8px 12px; background: var(--gold-l); border-radius: 8px;
+  border-left: 3px solid var(--gold);
+  cursor: pointer; transition: all .15s;
+}
+.cal-event:hover { background: var(--cream-2); transform: translateX(2px); }
+.cal-event-time {
+  font-family: 'VT323', monospace; font-size: 10px; color: var(--gold); margin-bottom: 2px;
+}
+.cal-event-name { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.3; }
+.cal-event-sub { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+/* Week View */
+.cal-week-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+}
+.cal-week-day {
+  background: var(--cream); border-radius: 10px; padding: 10px; min-height: 120px;
+  cursor: pointer; transition: all .15s;
+}
+.cal-week-day:hover { background: var(--cream-2); }
+.cal-week-day.today { background: var(--gold-l); border: 1px solid var(--gold); }
+.cal-week-day-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.cal-week-day-name {
+  font-family: 'VT323', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-5);
+}
+.cal-week-day-num {
+  width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 12px; font-weight: 500;
+}
+.cal-week-day.today .cal-week-day-num { background: var(--gold); color: white; }
+.cal-week-event {
+  font-size: 10px; padding: 4px 6px; background: white; border-radius: 4px;
+  margin-bottom: 4px; border-left: 2px solid var(--gold); color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Month View */
+.cal-month-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+}
+.cal-month-header {
+  font-family: 'VT323', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-5); text-align: center; padding: 8px 0;
+}
+.cal-month-day {
+  aspect-ratio: 1; background: var(--cream); border-radius: 8px; padding: 6px;
+  cursor: pointer; transition: all .15s; position: relative;
+}
+.cal-month-day:hover { background: var(--cream-2); }
+.cal-month-day.today { background: var(--gold-l); }
+.cal-month-day.other-month { opacity: 0.4; }
+.cal-month-day-num {
+  font-size: 12px; font-weight: 500; color: var(--ink);
+}
+.cal-month-day.today .cal-month-day-num {
+  width: 22px; height: 22px; background: var(--gold); color: white;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.cal-month-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--gold);
+  position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+}
+/* Contacts Panel */
+.contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.contact-card {
+  background: linear-gradient(145deg, var(--cream), var(--cream-2));
+  border-radius: 14px; padding: 16px; cursor: pointer;
+  transition: all .2s; border: 1px solid transparent;
+}
+.contact-card:hover { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 8px 24px rgba(184,135,58,.12); }
+.contact-avatar {
+  width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
+  background: linear-gradient(135deg, var(--gold), var(--rose));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: white; font-weight: 500;
+  box-shadow: 0 4px 12px rgba(184,135,58,.25);
+}
+.contact-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.contact-name {
+  font-family: 'VT323', monospace; font-size: 15px; color: var(--ink);
+  text-align: center; margin-bottom: 4px;
+}
+.contact-role {
+  font-family: 'VT323', monospace; font-size: 9px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-4); text-align: center; margin-bottom: 10px;
+}
+.contact-info {
+  font-size: 11px; color: var(--ink-3); text-align: center; margin-bottom: 12px;
+}
+.contact-actions-row {
+  display: flex; gap: 8px; justify-content: center;
+}
+.contact-action-btn {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--cream-3);
+  background: white; cursor: pointer; font-size: 18px; transition: all .15s;
+}
+.contact-action-btn:hover { background: var(--gold); border-color: var(--gold); }
+/* News with images */
+.news-card {
+  display: flex; gap: 14px; padding: 14px; background: var(--cream);
+  border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: all .15s;
+}
+.news-card:hover { background: var(--cream-2); transform: translateX(3px); }
+.news-img {
+  width: 100px; height: 100px; border-radius: 10px; flex-shrink: 0;
+  background: var(--cream-3); object-fit: cover;
+}
+.news-content { flex: 1; }
+.news-source {
+  font-family: 'VT323', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+}
+.news-title { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
+.news-summary { font-size: 11px; color: var(--ink-4); line-height: 1.5; }
+.news-time { font-family: 'VT323', monospace; font-size: 9px; color: var(--ink-5); margin-top: 6px; }
+.cal-event-time { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); min-width:38px; padding-top:1px; }
+.cal-event-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:2px; }
+.cal-event-sub  { font-size:11px; color:var(--ink-4); }
+
+/* ── MUSIC PANEL ── */
+.music-art {
+  width: 100%; aspect-ratio: 1; border-radius: 14px; margin-bottom: 18px;
+  background: linear-gradient(135deg, var(--gold) 0%, #3A2410 100%);
+  display: flex; align-items: center; justify-content: center; font-size: 56px;
+  position: relative; overflow: hidden;
+}
+.music-art::after {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(circle at 70% 30%, rgba(255,255,255,.08) 0%, transparent 60%);
+}
+.music-art.playing { animation: art-breathe 3s ease-in-out infinite; }
+@keyframes art-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.012)} }
+.music-title  { font-family:'VT323',monospace; font-size:20px; font-weight:400; text-align:center; margin-bottom:3px; }
+.music-artist { font-size:12px; color:var(--ink-4); text-align:center; margin-bottom:18px; }
+.music-bar    { height:3px; background:var(--cream-3); border-radius:2px; margin-bottom:5px; overflow:hidden; cursor:pointer; }
+.music-fill   { height:100%; background:var(--gold); border-radius:2px; transition:width 1s linear; }
+.music-times  { display:flex; justify-content:space-between; font-family:'DM Mono',monospace; font-size:10px; color:var(--ink-5); margin-bottom:18px; }
+.music-ctrls  { display:flex; justify-content:center; align-items:center; gap:22px; }
+.m-btn {
+  border:none; background:none; cursor:pointer; color:var(--ink-4);
+  display:flex; align-items:center; transition:color .15s;
+}
+.m-btn:hover { color:var(--ink); }
+.m-btn.play-btn {
+  width:46px; height:46px; border-radius:50%;
+  background:var(--ink); color:var(--cream);
+  justify-content:center; transition:background .2s, transform .15s;
+}
+.m-btn.play-btn:hover { background:var(--gold); transform:scale(1.06); }
+
+/* ── EMAIL PANEL ── */
+.email-item {
+  display:flex; gap:12px; padding:12px 0;
+  border-bottom:1px solid rgba(20,18,16,.06);
+  cursor:pointer; transition:all .15s;
+}
+.email-item:last-child { border-bottom:none; }
+.email-item:hover { padding:12px 8px; margin:0 -8px; background:var(--cream); border-radius:var(--r); }
+.email-av {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--cream-3); display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:var(--ink-3); flex-shrink:0;
+}
+.email-av.unread { background:var(--gold-l); color:var(--gold); }
+.email-from { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:2px; display:flex; align-items:center; gap:5px; }
+.email-subj { font-size:12px; color:var(--ink-4); margin-bottom:1px; }
+.email-prev { font-size:11px; color:var(--ink-5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px; }
+.unread-dot { width:5px; height:5px; border-radius:50%; background:var(--gold); display:inline-block; }
+.email-time { font-family:'DM Mono',monospace; font-size:10px; color:var(--ink-5); margin-left:auto; white-space:nowrap; padding-top:2px; }
+
+/* ── HOME PANEL (no HA) ── */
+.home-unavailable {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:48px 24px; text-align:center; gap:12px;
+}
+.home-unavailable-ico { font-size:36px; opacity:.35; }
+.home-unavailable-title { font-size:14px; font-weight:500; color:var(--ink-3); }
+.home-unavailable-sub { font-size:12px; color:var(--ink-5); line-height:1.6; max-width:240px; }
+
+/* ── NEWS PANEL ── */
+.news-item {
+  padding:14px 0; border-bottom:1px solid rgba(20,18,16,.06);
+  cursor:pointer; transition:all .15s;
+}
+.news-item:last-child { border-bottom:none; }
+.news-item:hover { padding:14px 10px; margin:0 -10px; background:var(--cream); border-radius:var(--r); }
+.news-src  { font-family:'DM Mono',monospace; font-size:9.5px; color:var(--ink-5); letter-spacing:.08em; text-transform:uppercase; margin-bottom:5px; }
+.news-hed  { font-family:'VT323',monospace; font-size:16px; font-weight:400; line-height:1.4; color:var(--ink); margin-bottom:4px; }
+.news-prev { font-size:11.5px; color:var(--ink-4); line-height:1.5; }
+
+/* ── MEDICATIONS PANEL ── */
+.med-item {
+  display:flex; align-items:center; gap:14px;
+  padding:12px 14px; background:var(--cream); border-radius:var(--r); margin-bottom:8px;
+  cursor:pointer; transition:background .15s;
+}
+.med-item:hover { background:var(--cream-2); }
+.med-ico { font-size:20px; flex-shrink:0; }
+.med-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:2px; }
+.med-dose { font-size:11px; color:var(--ink-4); }
+.med-time { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); margin-left:auto; white-space:nowrap; flex-shrink:0; }
+.med-taken { opacity:.45; }
+.med-taken .med-time { color:var(--sage); }
+.med-badge {
+  display:inline-block; font-family:'DM Mono',monospace; font-size:9px;
+  letter-spacing:.06em; padding:2px 7px; border-radius:100px;
+  background:var(--rose-l); color:var(--rose); margin-left:8px;
+}
+.med-badge.ok { background:var(--sage-l); color:var(--sage); }
+
+/* ── CONTACTS PANEL ── */
+.contact-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 0; border-bottom:1px solid rgba(20,18,16,.06); cursor:pointer;
+  transition:all .15s;
+}
+.contact-item:last-child{border-bottom:none}
+.contact-item:hover { padding:10px 8px; margin:0 -8px; background:var(--cream); border-radius:var(--r); }
+.contact-av {
+  width:36px; height:36px; border-radius:50%; flex-shrink:0;
+  background:var(--cream-3); display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:500; color:var(--ink-3);
+}
+.contact-name { font-size:13px; font-weight:500; color:var(--ink); margin-bottom:1px; }
+.contact-rel  { font-size:11px; color:var(--ink-5); }
+.contact-actions { margin-left:auto; display:flex; gap:6px; }
+.c-act-btn {
+  width:28px; height:28px; border-radius:50%; border:1px solid rgba(20,18,16,.1);
+  background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:var(--ink-4); font-size:13px; transition:all .15s;
+}
+.c-act-btn:hover { background:var(--cream-2); color:var(--ink); }
+
+/* ── MEMORY PANEL ── */
+.mem-item {
+  padding:10px 13px; background:var(--cream); border-radius:var(--r); margin-bottom:7px;
+}
+.mem-cat { font-family:'DM Mono',monospace; font-size:9px; color:var(--gold); letter-spacing:.08em; text-transform:uppercase; margin-bottom:3px; }
+.mem-val { font-size:13px; color:var(--ink); }
+
+/* ─── RESPONSIVE: compress if window narrow ─── */
+@media (max-width: 820px) {
+  :root { --chat-w: 340px; --panel-w: 0; }
+}
+/* ─── SUGGESTIONS PANEL ─── */
+.sug-card {
+  background: var(--cream-2);
+  border: 1px solid var(--cream-3);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.sug-card:hover {
+  background: var(--gold-l);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(184,135,58,.12);
+}
+.sug-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  opacity: .7;
+}
+.sug-content {
+  flex: 1;
+  min-width: 0;
+}
+.sug-text {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.sug-hint {
+  font-family: 'VT323', monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.sug-category {
+  display: inline-block;
+  background: var(--sage-l);
+  color: var(--sage);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'VT323', monospace;
+  font-size: 8px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+#task-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(184,135,58,.2);
+  border-radius: var(--r);
+  background: var(--cream-2);
+  font-size: 14px;
+  font-family: 'VT323', monospace;
+  color: var(--ink);
+  outline: none;
+  transition: all .2s;
+}
+#task-input:focus {
+  background: var(--cream);
+  border-color: var(--gold);
+}
+#task-input::placeholder {
+  color: var(--ink-4);
+  font-style: italic;
+}
+.task-item {
+  background: linear-gradient(135deg, var(--cream-2) 0%, var(--cream) 100%);
+  border: 1px solid rgba(20,18,16,.08);
+  border-radius: var(--r);
+  padding: 16px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  transition: all .25s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.task-item:hover {
+  background: linear-gradient(135deg, var(--cream) 0%, var(--gold-l) 100%);
+  border-color: rgba(184,135,58,.25);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(184,135,58,.12);
+}
+.task-item.done {
+  opacity: 0.6;
+  background: var(--cream-3);
+}
+.task-item.done:hover {
+  opacity: 0.75;
+}
+.task-item.done .task-text {
+  text-decoration: line-through;
+  color: var(--ink-4);
+}
+.task-check {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+.task-check:hover {
+  background: var(--gold-l);
+  transform: scale(1.08);
+}
+.task-check.checked {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.task-check.checked::after {
+  content: '✓';
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+}
+.task-text {
+  flex: 1;
+  font-size: 14.5px;
+  font-family: 'VT323', monospace;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.task-delete {
+  background: none;
+  border: none;
+  color: var(--ink-4);
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all .2s;
+  padding: 0 6px;
+  line-height: 1;
+}
+.task-item:hover .task-delete {
+  opacity: 1;
+}
+.task-delete:hover {
+  color: var(--rose);
+  transform: scale(1.15);
+
+}
+
+/* ─── APPS PANEL ─── */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.app-card {
+  background: linear-gradient(135deg, #FFFEF8 0%, var(--cream) 100%);
+  border: 2px solid rgba(184,135,58,.25);
+  border-radius: 12px;
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.app-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(184,135,58,.08) 0%, rgba(184,135,58,.15) 100%);
+  opacity: 0;
+  transition: opacity .3s;
+}
+
+.app-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(184,135,58,.25);
+  border-color: rgba(184,135,58,.5);
+}
+
+.app-card:hover::before {
+  opacity: 1;
+}
+
+.app-card:active {
+  transform: translateY(-4px);
+}
+
+.app-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.1));
+}
+
+.app-name {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  letter-spacing: .3px;
+}
+
+.app-desc {
+  font-family: 'VT323', monospace;
+  font-size: 11.5px;
+  color: rgba(48,39,28,.55);
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  letter-spacing: .2px;
+}
+</style>
+</head>
+<body>
+<div id="crt-scan" aria-hidden="true"></div>
+<div id="crt-vig" aria-hidden="true"></div>
+
+<div id="amb">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+
+<div class="scatter-credo" role="note">Dignity · aid · open stack · a future you build from here</div>
+
+<div id="shell">
+  <!-- ══════════ LEFT: CHAT ══════════ -->
+  <div id="chat-col">
+
+    <!-- Face + wordmark -->
+    <div id="face-wrap">
+      <div id="face-stage">
+        <div id="aura"></div>
+        <svg id="face-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <!-- Organic face blob — slightly irregular circle for life -->
+          <defs>
+            <filter id="face-blur" x="-10%" y="-10%" width="120%" height="120%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation=".4"/>
+            </filter>
+          </defs>
+          <!-- Base blob -->
+          <path id="face-blob" d="
+            M32 4
+            C42 4, 56 12, 58 24
+            C61 38, 54 54, 40 59
+            C28 63, 10 58, 6 44
+            C2 30, 8 10, 22 5
+            C24 4.3, 28 3.8, 32 4Z
+          " fill="white" stroke="rgba(20,18,16,.1)" stroke-width="1" filter="url(#face-blur)"/>
+
+          <!-- Eyes — two circles, positioned asymmetrically for character -->
+          <g id="eyes">
+            <circle id="eye-l" cx="23" cy="26" r="3.5" fill="var(--ink-2)"/>
+            <circle id="eye-r" cx="41" cy="25" r="3.5" fill="var(--ink-2)"/>
+            <!-- Glints -->
+            <circle cx="24.5" cy="24.8" r="1" fill="white"/>
+            <circle cx="42.5" cy="23.8" r="1" fill="white"/>
+          </g>
+
+          <!-- Mouth — small curved path, morphs with mood -->
+          <path id="mouth" d="M27 38 Q32 42 37 38" fill="none" stroke="var(--ink-3)" stroke-width="1.8" stroke-linecap="round"/>
+
+          <!-- Blink overlay (hidden, animated) -->
+          <rect id="blink-l" x="19" y="22.5" width="9" height="7" rx="4" fill="white" opacity="0"/>
+          <rect id="blink-r" x="37" y="21.5" width="9" height="7" rx="4" fill="white" opacity="0"/>
+        </svg>
+      </div>
+
+      <div id="face-meta">
+        <div class="scatter-wordmark">Scatter</div>
+        <div id="state-label">
+          <span id="state-text">idle</span>
+          <div id="listen-bars">
+            <div class="lb"></div><div class="lb"></div><div class="lb"></div>
+            <div class="lb"></div><div class="lb"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav pills — Scatter capabilities -->
+    <div id="nav-row">
+      <button class="nav-pill active" onclick="navTap('weather')"><span class="dot"></span>weather</button>
+      <button class="nav-pill" onclick="navTap('calendar')"><span class="dot"></span>calendar</button>
+      <button class="nav-pill" onclick="navTap('music')"><span class="dot"></span>music</button>
+      <button class="nav-pill" onclick="navTap('email')"><span class="dot"></span>email</button>
+      <button class="nav-pill" onclick="navTap('home')"><span class="dot"></span>home</button>
+      <button class="nav-pill" onclick="navTap('news')"><span class="dot"></span>news</button>
+      <button class="nav-pill" onclick="navTap('medications')"><span class="dot"></span>meds</button>
+      <button class="nav-pill" onclick="navTap('contacts')"><span class="dot"></span>contacts</button>
+      <button class="nav-pill" onclick="navTap('memory')"><span class="dot"></span>memory</button>
+      <button class="nav-pill" onclick="navTap('suggestions')"><span class="dot"></span>suggestions</button>
+      <button class="nav-pill" onclick="navTap('tasks')"><span class="dot"></span>tasks</button>
+      <button class="nav-pill" onclick="navTap('apps')"><span class="dot"></span>apps</button>
+    </div>
+
+    <!-- Chat feed -->
+    <div id="chat-feed">
+      <div class="msg-group msg-scatter">
+        <div class="msg-label">Scatter</div>
+        <div class="msg-body">Online. Local stack, your keys. How can I help you move the work forward today?</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div id="input-bar">
+      <div id="input-wrap">
+        <input type="text" id="msg-input" placeholder="ask scatter anything…" autocomplete="off"/>
+        <button class="input-btn" id="mic-btn" onclick="toggleMic()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </button>
+        <button class="input-btn" id="send-btn" onclick="sendMsg()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"/>
+            <polyline points="5 12 12 5 19 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ RIGHT: DASHBOARD ══════════ -->
+  <div id="dash-col">
+    <div id="dash-header">
+      <div id="dash-tab-row">
+        <div class="dash-tab active" data-tab="weather" onclick="switchTab('weather')">Weather</div>
+        <div class="dash-tab" data-tab="calendar" onclick="switchTab('calendar')">Calendar</div>
+        <div class="dash-tab" data-tab="music" onclick="switchTab('music')">Music</div>
+        <div class="dash-tab" data-tab="email" onclick="switchTab('email')">Email</div>
+        <div class="dash-tab" data-tab="home" onclick="switchTab('home')">Home</div>
+        <div class="dash-tab" data-tab="news" onclick="switchTab('news')">News</div>
+        <div class="dash-tab" data-tab="medications" onclick="switchTab('medications')">Meds</div>
+        <div class="dash-tab" data-tab="contacts" onclick="switchTab('contacts')">Contacts</div>
+        <div class="dash-tab" data-tab="memory" onclick="switchTab('memory')">Memory</div>
+        <div class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</div>
+        <div class="dash-tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</div>
+        <div class="dash-tab" data-tab="apps" onclick="switchTab('apps')">Apps</div>
+      </div>
+      <div id="dash-clock"></div>
+    </div>
+
+    <div id="dash-body">
+
+      <!-- WEATHER -->
+      <div class="dash-view active" id="view-weather">
+        <div class="wx-hero">
+          <div class="wx-temp" id="d-wx-temp">58°</div>
+          <div class="wx-right">
+            <div class="wx-cond" id="d-wx-cond">Partly cloudy</div>
+            <div class="wx-loc">Garden City, NY</div>
+          </div>
+        </div>
+        <div class="wx-grid">
+          <div class="wx-cell"><div class="wx-cell-lbl">Feels like</div><div class="wx-cell-val" id="d-wx-fl">54°</div></div>
+          <div class="wx-cell"><div class="wx-cell-lbl">Humidity</div><div class="wx-cell-val" id="d-wx-hu">62%</div></div>
+          <div class="wx-cell"><div class="wx-cell-lbl">Wind</div><div class="wx-cell-val" id="d-wx-wi">11 mph</div></div>
+          <div class="wx-cell"><div class="wx-cell-lbl">UV Index</div><div class="wx-cell-val" id="d-wx-uv">3</div></div>
+        </div>
+        <div class="sec-label">Hourly</div>
+        <div class="wx-hourly" id="d-wx-hourly"></div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="dash-view" id="view-calendar">
+        <div class="cal-header">
+          <button class="cal-nav-btn" onclick="calNav(-1)">←</button>
+          <div class="cal-title-wrap">
+            <div class="cal-date-big" id="d-cal-day"></div>
+            <div class="cal-date-sub" id="d-cal-date"></div>
+          </div>
+          <button class="cal-nav-btn" onclick="calNav(1)">→</button>
+        </div>
+        <div class="cal-view-tabs">
+          <button class="cal-view-tab active" data-view="day" onclick="calView('day')">Day</button>
+          <button class="cal-view-tab" data-view="week" onclick="calView('week')">Week</button>
+          <button class="cal-view-tab" data-view="month" onclick="calView('month')">Month</button>
+        </div>
+        <div id="cal-day-view" class="cal-day-timeline"></div>
+        <div id="cal-week-view" class="cal-week-grid" style="display:none"></div>
+        <div id="cal-month-view" style="display:none">
+          <div class="cal-month-grid" id="cal-month-headers"></div>
+          <div class="cal-month-grid" id="cal-month-days"></div>
+        </div>
+      </div>
+
+      <!-- MUSIC -->
+      <div class="dash-view" id="view-music">
+        <!-- TABS -->
+        <div style="display:flex;gap:6px;margin-bottom:16px">
+          <button id="mtab-now" onclick="musicTab('now')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--cream-3);background:var(--gold);color:#030503;font-family:'VT323',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Now Playing</button>
+          <button id="mtab-queue" onclick="musicTab('queue')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--cream-3);background:transparent;color:var(--ink-4);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Up Next</button>
+          <button id="mtab-library" onclick="musicTab('library')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--cream-3);background:transparent;color:var(--ink-4);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Library</button>
+        </div>
+        <!-- NOW PLAYING -->
+        <div id="d-music-now-view">
+          <div style="background:linear-gradient(160deg,#1a1a2e,#0f3460);border-radius:20px;padding:24px 20px 20px;margin-bottom:16px;position:relative;overflow:hidden">
+            <div style="position:relative;margin:0 auto 20px;width:160px;height:160px">
+              <div id="d-music-art" style="width:160px;height:160px;border-radius:12px;overflow:hidden;background:#0d1b2a;display:flex;align-items:center;justify-content:center;font-size:48px;color:rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.4)">♪</div>
+            </div>
+            <div style="text-align:center;margin-bottom:16px">
+              <div id="d-music-title" style="font-family:'VT323',monospace;font-size:18px;color:var(--gold);margin-bottom:4px;line-height:1.3">Nothing playing</div>
+              <div id="d-music-artist" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,0.5);margin-bottom:3px">—</div>
+              <div id="d-music-album" style="font-size:10px;color:rgba(255,255,255,0.25);font-style:italic"></div>
+            </div>
+            <div style="margin-bottom:20px">
+              <div style="height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin-bottom:6px;overflow:hidden">
+                <div id="d-music-fill" style="height:100%;background:var(--gold);border-radius:2px;transition:width 1s linear;width:0%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.3)">
+                <span id="d-music-cur">0:00</span>
+                <span id="d-music-dur">0:00</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:24px">
+              <button onclick="musicCmd('previous')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:48px;height:48px;font-size:20px;color:rgba(255,255,255,0.7);cursor:pointer">⏮</button>
+              <button id="d-music-playpause" onclick="musicCmd('playpause')" style="background:var(--gold);border:none;border-radius:50%;width:60px;height:60px;font-size:24px;color:#030503;cursor:pointer">▶</button>
+              <button onclick="musicCmd('skip')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:48px;height:48px;font-size:20px;color:rgba(255,255,255,0.7);cursor:pointer">⏭</button>
+            </div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-4);margin-bottom:10px">Recently Played</div>
+          <div id="d-music-recent" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <!-- UP NEXT -->
+        <div id="d-music-queue-view" style="display:none">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-4);margin-bottom:12px">Up Next</div>
+          <div id="d-music-queue" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <!-- LIBRARY -->
+        <div id="d-music-library-view" style="display:none">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-4);margin-bottom:12px">Your Library</div>
+          <div id="d-music-library"></div>
+        </div>
+      </div>
+
+      <!-- EMAIL -->
+      <div class="dash-view" id="view-email">
+        <!-- TABS -->
+        <div style="display:flex;gap:6px;margin-bottom:16px">
+          <button id="etab-inbox" onclick="emailTab('inbox')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--cream-3);background:var(--gold);color:#030503;font-family:'VT323',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Inbox</button>
+          <button id="etab-compose" onclick="emailTab('compose')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--cream-3);background:transparent;color:var(--ink-4);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Compose</button>
+        </div>
+        <!-- INBOX -->
+        <div id="d-email-inbox-view">
+          <div id="d-email-list"></div>
+        </div>
+        <!-- COMPOSE -->
+        <div id="d-email-compose-view" style="display:none">
+          <div style="background:linear-gradient(160deg,#f5f0e8,#ede5d0);border-radius:16px;border:1px solid rgba(196,160,80,0.2);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);min-width:52px">To</div>
+              <input id="compose-to" type="email" placeholder="recipient@email.com" style="flex:1;background:transparent;border:none;outline:none;font-family:'VT323',monospace;font-size:13px;color:var(--ink)">
+            </div>
+            <div style="height:1px;background:rgba(196,160,80,0.18);margin:0 16px"></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);min-width:52px">Subject</div>
+              <input id="compose-subject" type="text" placeholder="Subject line" style="flex:1;background:transparent;border:none;outline:none;font-family:'VT323',monospace;font-size:13px;color:var(--ink)">
+            </div>
+            <div style="height:1px;background:rgba(196,160,80,0.18);margin:0 16px"></div>
+            <textarea id="compose-body" placeholder="Your message..." style="width:100%;min-height:180px;background:transparent;border:none;outline:none;padding:16px;font-family:'VT323',monospace;font-size:13px;color:var(--ink);line-height:1.7;resize:none;box-sizing:border-box"></textarea>
+            <div style="display:flex;gap:8px;padding:12px 16px 16px;border-top:1px solid rgba(196,160,80,0.18)">
+              <button onclick="scatterDraftEmail()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(196,160,80,0.35);background:transparent;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--gold);cursor:pointer">✦ Draft with Scatter</button>
+              <button onclick="sendComposedEmail()" style="padding:10px 20px;border-radius:8px;border:none;background:var(--gold);font-family:'VT323',monospace;font-size:10px;letter-spacing:.08em;color:#030503;cursor:pointer">Send →</button>
+            </div>
+            <div id="compose-status" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);padding:0 16px 12px;min-height:18px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOME -->
+      <div class="dash-view" id="view-home">
+        <div class="home-unavailable">
+          <div class="home-unavailable-ico">🏠</div>
+          <div class="home-unavailable-title">Smart home not connected</div>
+          <div class="home-unavailable-sub">Home Assistant integration is not configured. Add HA_URL and HA_TOKEN to ~/jarvis/.env to enable device control.</div>
+        </div>
+      </div>
+
+      <!-- NEWS -->
+      <div class="dash-view" id="view-news">
+        <div style="display:flex;gap:6px;margin-bottom:16px">
+          <button class="news-cat-btn active" onclick="newsCategory('all')">All</button>
+          <button class="news-cat-btn" onclick="newsCategory('tech')">Tech</button>
+          <button class="news-cat-btn" onclick="newsCategory('business')">Business</button>
+          <button class="news-cat-btn" onclick="newsCategory('science')">Science</button>
+        </div>
+        <div id="d-news-list"></div>
+      </div>
+
+      <!-- MEDICATIONS -->
+      <div class="dash-view" id="view-medications">
+        <div class="sec-label">Today's schedule</div>
+        <div id="d-med-list"></div>
+        <div class="sec-label">Refills needed</div>
+        <div id="d-med-refills"></div>
+      </div>
+
+      <!-- CONTACTS -->
+      <div class="dash-view" id="view-contacts">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="sec-label" style="margin:0">Contacts</div>
+          <button onclick="inject('Add a new contact')" style="padding:6px 12px;border-radius:6px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;cursor:pointer">+ Add</button>
+        </div>
+        <input id="contact-search" type="text" placeholder="Search contacts..." oninput="filterContacts()" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--cream-3);background:var(--cream);font-size:13px;margin-bottom:16px;outline:none">
+        <div class="contact-grid" id="d-contact-list"></div>
+      </div>
+
+      <!-- MEMORY -->
+      <div class="dash-view" id="view-memory">
+        <div class="sec-label">Stored facts</div>
+        <div id="d-memory-list"></div>
+      </div>
+
+      <!-- SUGGESTIONS -->
+      <div class="dash-view" id="view-suggestions">
+        <div class="sec-label">Try asking Scatter...</div>
+        <div id="d-suggestions-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="dash-view" id="view-tasks">
+        <div class="sec-label">Your Tasks</div>
+        <div style="margin-bottom:12px">
+          <input type="text" id="task-input" placeholder="Add a new task...">
+        </div>
+        <div id="d-task-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="dash-view" id="view-apps">
+        <div class="sec-label">Scatter Applications</div>
+        <div class="app-grid">
+          <div class="app-card" onclick="SCATTER.openPath('/arcade.html')">
+            <div class="app-icon">🎮</div>
+            <div class="app-name">Scatter Arcade</div>
+            <div class="app-desc">Retro games • Garrison, Rally, Flyover & more</div>
+          </div>
+          <div class="app-card" onclick="SCATTER.openPath('/HZL_Academy.html')">
+            <div class="app-icon">🎓</div>
+            <div class="app-name">Scatter OS guide</div>
+            <div class="app-desc">Read how each integration on this machine actually works</div>
+          </div>
+          <div class="app-card" onclick="SCATTER.openPath('/classroom.html')">
+            <div class="app-icon">✓</div>
+            <div class="app-name">Local praxis</div>
+            <div class="app-desc">Single-player quiz — confabulatory OS literacy + real-world steps</div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+    </div><!-- /dash-body -->
+  </div><!-- /dash-col -->
+
+</div><!-- /shell -->
+
+<script src="scatter-base.js"></script>
+<script>
+/* ───────────────────────────────────────────
+   STATE
+─────────────────────────────────────────── */
+const S = {
+  ws: null,
+  micOn: false,
+  playing: false,
+  progSec: 0,
+  totSec: 240,
+  progT: null,
+  faceT: null,
+  activeTab: 'weather',
+  music: { track:'Nothing playing', artist:'—', playing:false, prog:0, dur:240 },
+  queue: [],
+  library: [],
+  recent: [],
+
+  weather: { temp:58, feels:54, hum:62, wind:11, uv:3, cond:'Partly cloudy', hourly:[] },
+
+  events: [
+    { time:'9:00',  name:'Team standup',  sub:'Google Meet · 30 min', accent:'var(--gold)' },
+    { time:'11:30', name:'Design review', sub:'Studio · 1 hr',         accent:'var(--sage)' },
+    { time:'14:00', name:'Scatter demo',    sub:'Zoom · 45 min',         accent:'var(--rose)' },
+  ],
+
+  emails: [
+    { av:'SC', from:'Sam Chen',  subj:'Re: Scatter launch timeline', prev:'Looks great — on track for the demo.',   time:'9:41', unread:true },
+    { av:'AR', from:'Alex R.',   subj:'Figma file updated',       prev:'Pushed the new card designs. Thoughts?', time:'8:58', unread:false },
+    { av:'JM', from:'Jordan M.', subj:'Can we reschedule Friday?',prev:'Something came up — 3 PM instead?',     time:'8:12', unread:true },
+  ],
+
+  home: [
+    { id:'living_room', name:'Living Room', icon:'💡', on:true  },
+    { id:'bedroom',     name:'Bedroom',     icon:'🛏',  on:false },
+    { id:'kitchen',     name:'Kitchen',     icon:'☕', on:true  },
+    { id:'thermostat',  name:'Thermostat',  icon:'🌡', on:true, val:'70°F' },
+    { id:'office',      name:'Office',      icon:'🖥',  on:false },
+    { id:'entry',       name:'Entry Light', icon:'🚪', on:false },
+  ],
+
+  news: [
+    { src:'NY Times',  hed:'NYC launches expanded bike lane program across midtown Manhattan',   prev:'City officials say the plan will cut commute times while improving pedestrian safety.' },
+    { src:'The Verge', hed:'Apple announces major Siri overhaul powered by on-device AI',        prev:'The new system will handle complex multi-step tasks without sending data to servers.' },
+    { src:'Reuters',   hed:'Federal Reserve holds rates steady, signals patience on cuts',       prev:'Policymakers cited continued resilience in the job market and elevated shelter costs.' },
+  ],
+
+  medications: [
+    { name:'Levothyroxine', dose:'50mcg', time:'8:00 AM', taken:true,  icon:'💊', refill:false },
+    { name:'Vitamin D3',    dose:'2000IU',time:'8:00 AM', taken:true,  icon:'🌤', refill:false },
+    { name:'Metformin',     dose:'500mg', time:'12:00 PM',taken:false, icon:'💊', refill:true  },
+    { name:'Lisinopril',    dose:'10mg',  time:'8:00 PM', taken:false, icon:'💊', refill:false },
+  ],
+
+  contacts: [
+    { av:'MR', name:'Mom',          rel:'Family',              phone:'+1 (516) 555-0121' },
+    { av:'DR', name:'Dr. Reyes',    rel:'Primary Care',        phone:'+1 (516) 555-0198' },
+    { av:'JC', name:'Jake Chen',    rel:'Friend',              phone:'+1 (917) 555-0142' },
+    { av:'EM', name:'Emma M.',      rel:'Work',                phone:'+1 (212) 555-0167' },
+    { av:'SC', name:'Sam Chen',     rel:'Work · Scatter project',  phone:'+1 (646) 555-0133' },
+    { av:'PH', name:'Pharmacy',     rel:'CVS Pharmacy',        phone:'+1 (516) 555-0155' },
+  ],
+
+  memory: [
+    { cat:'location',    val:'Garden City, NY' },
+    { cat:'device',      val:'Raspberry Pi 5' },
+    { cat:'preference',  val:'Prefers morning briefings at 7:30 AM' },
+    { cat:'health',      val:'Takes medication at 8 AM and 8 PM' },
+    { cat:'project',     val:'Building Scatter — local-first, human-rights-aligned stack' },
+    { cat:'schedule',    val:'Usually wakes around 7 AM on weekdays' },
+  ],
+  tasks: [],
+};
+
+/* ───────────────────────────────────────────
+   FACE SYSTEM
+   Organic face: eyes, mouth, blink, mood
+─────────────────────────────────────────── */
+const MOODS = {
+  idle:      { eyeL:[23,26], eyeR:[41,25], eyeRad:3.5, mouthD:'M27 38 Q32 42 37 38', blink:false },
+  thinking:  { eyeL:[23,27], eyeR:[41,27], eyeRad:2.8, mouthD:'M27 38 Q32 40 37 38', blink:false },
+  listening: { eyeL:[23,25], eyeR:[41,24], eyeRad:4.2, mouthD:'M27 37 Q32 39 37 37', blink:false },
+  speaking:  { eyeL:[23,26], eyeR:[41,25], eyeRad:3.8, mouthD:'M26 37 Q32 44 38 37', blink:true  },
+  happy:     { eyeL:[23,26], eyeR:[41,25], eyeRad:3.5, mouthD:'M25 37 Q32 45 39 37', blink:true  },
+  surprised: { eyeL:[23,25], eyeR:[41,24], eyeRad:5.0, mouthD:'M29 38 Q32 44 35 38', blink:false },
+};
+
+let blinkInterval = null;
+
+function setFace(state) {
+  if (S.faceT) clearTimeout(S.faceT);
+  const m = MOODS[state] || MOODS.idle;
+  document.body.className = state || '';
+
+  // Morph eyes
+  const eL = document.getElementById('eye-l');
+  const eR = document.getElementById('eye-r');
+  eL.setAttribute('cx', m.eyeL[0]); eL.setAttribute('cy', m.eyeL[1]); eL.setAttribute('r', m.eyeRad);
+  eR.setAttribute('cx', m.eyeR[0]); eR.setAttribute('cy', m.eyeR[1]); eR.setAttribute('r', m.eyeRad);
+
+  // Morph mouth
+  document.getElementById('mouth').setAttribute('d', m.mouthD);
+
+  // State label
+  document.getElementById('state-text').textContent = state || 'idle';
+
+  // Blink loop
+  clearInterval(blinkInterval);
+  if (m.blink) {
+    blinkInterval = setInterval(doBlink, 2800 + Math.random()*1200);
+  }
+}
+
+function doBlink() {
+  const bl = document.getElementById('blink-l');
+  const br = document.getElementById('blink-r');
+  // Animate opacity to "close" eyes
+  bl.setAttribute('opacity', '1'); br.setAttribute('opacity', '1');
+  setTimeout(() => { bl.setAttribute('opacity', '0'); br.setAttribute('opacity', '0'); }, 120);
+}
+
+function flashFace(state, ms) {
+  setFace(state);
+  S.faceT = setTimeout(() => setFace('idle'), ms || 2200);
+}
+
+// Idle random blinks
+setInterval(() => {
+  if (document.body.className === '' || document.body.className === 'idle') doBlink();
+}, 3500 + Math.random()*2000);
+
+/* ───────────────────────────────────────────
+   CLOCK
+─────────────────────────────────────────── */
+function updateClock() {
+  const n = new Date();
+  const h = n.getHours(), mi = n.getMinutes();
+  const ap = h >= 12 ? 'pm' : 'am';
+  const hh = h % 12 || 12;
+  const mm = String(mi).padStart(2,'0');
+  document.getElementById('dash-clock').textContent = `${hh}:${mm} ${ap}`;
+}
+updateClock(); setInterval(updateClock, 30000);
+
+/* ───────────────────────────────────────────
+   NAV + TAB SYSTEM
+─────────────────────────────────────────── */
+const NAV_QUESTIONS = {
+  weather:     "What's the current weather and forecast for today?",
+  calendar:    "What's on my schedule today?",
+  music:       "What's currently playing on Spotify?",
+  email:       "Check my inbox and summarize unread emails.",
+  home:        "What's the status of my smart home devices?",
+  news:        "What are the top news stories right now?",
+  medications: "What medications do I need to take today and have I taken them?",
+  contacts:    "Show me my contacts.",
+  memory:      "What do you remember about me?",
+  apps:        "Show me the Scatter applications I can use.",
+  tasks:       "What's on my task list?",
+};
+
+function navTap(tab) {
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.toggle('active', p.textContent.trim() === tab || p.getAttribute('onclick')?.includes(`'${tab}'`)));
+  switchTab(tab);
+  const q = NAV_QUESTIONS[tab];
+  if (q) inject(q, tab);
+}
+
+function switchTab(tab) {
+  S.activeTab = tab;
+  document.querySelectorAll('.dash-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.dash-view').forEach(v => v.classList.toggle('active', v.id === 'view-' + tab));
+  document.querySelectorAll('.nav-pill').forEach(p => {
+    const o = p.getAttribute('onclick') || '';
+    p.classList.toggle('active', o.includes(`'${tab}'`));
+  });
+  if (tab !== "suggestions") renderSuggestionsPanel();
+}
+
+/* ───────────────────────────────────────────
+   WEBSOCKET
+─────────────────────────────────────────── */
+function connectWS() {
+  try {
+    S.ws = new WebSocket(typeof SCATTER !== 'undefined' ? SCATTER.wsUrl() : 'ws://localhost:8765');
+    S.ws.onopen  = () => { document.getElementById('state-text').textContent = 'connected'; };
+    S.ws.onclose = () => { document.getElementById('state-text').textContent = 'offline'; setTimeout(connectWS, 5000); };
+    S.ws.onerror = () => { document.getElementById('state-text').textContent = 'offline'; };
+    S.ws.onmessage = e => { try { handleWS(JSON.parse(e.data)); } catch {} };
+  } catch { document.getElementById('state-text').textContent = 'offline'; }
+}
+
+function handleWS(d) {
+  if (d.type === 'response') {
+    removeThinking();
+    addScatterMsg(d.text || d.message || '');
+    flashFace('happy', 2400);
+  } else if (d.type === 'speaking')  setFace('speaking');
+  else if (d.type === 'listening')   setFace('listening');
+  else if (d.type === 'thinking')  { showThinking(); setFace('thinking'); }
+  else if (d.type === 'idle')        setFace('idle');
+  else if (d.type === 'music_state') {
+    Object.assign(S.music, d);
+    S.queue = d.queue || [];
+    S.library = d.library || [];
+    renderMusicPanel();
+  }
+  // Live weather/calendar/email push from backend
+  else if (d.type === 'weather_state') { Object.assign(S.weather, d); renderWeatherPanel(); }
+  else if (d.type === 'calendar_state') { S.events = d.events || S.events; renderCalendarPanel(); }
+  else if (d.type === 'email_state')    { S.emails = d.emails || S.emails; renderEmailPanel(); }
+  else if (d.type === 'home_state')     { S.home = d.devices || S.home; renderHomePanel(); }
+  else if (d.type === 'init_key')   { window.__HZL_KEY = d.key; }
+  else if (d.type === 'contacts_state') { S.contacts = d.contacts || []; renderContactsPanel(); }
+  else if (d.type === 'news_state') { S.news = d.news || []; renderNewsPanel(); }
+      if (d.type === 'meds_state') { S.medications = d.medications || []; renderMedsPanel(); }
+  else if (d.type === 'task_state') { S.tasks = d.tasks || []; renderTasksPanel(); }
+  else if (d.type === 'panel_open') { switchTab(d.panel); }
+}
+
+/* ───────────────────────────────────────────
+   CHAT
+─────────────────────────────────────────── */
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function addScatterMsg(text) {
+  const feed = document.getElementById('chat-feed');
+  const g = document.createElement('div');
+  g.className = 'msg-group msg-scatter';
+  g.innerHTML = `<div class="msg-label">Scatter</div><div class="msg-body">${esc(text)}</div>`;
+  feed.appendChild(g);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addUserMsg(text) {
+  const feed = document.getElementById('chat-feed');
+  const g = document.createElement('div');
+  g.className = 'msg-group msg-user';
+  g.innerHTML = `<div class="msg-label">You</div><div class="msg-body">${esc(text)}</div>`;
+  feed.appendChild(g);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function showThinking() {
+  removeThinking();
+  const feed = document.getElementById('chat-feed');
+  const g = document.createElement('div');
+  g.className = 'msg-group msg-scatter'; g.id = 'thinking-row';
+  g.innerHTML = `<div class="msg-label">Scatter</div><div class="thinking-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  feed.appendChild(g);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function removeThinking() {
+  const el = document.getElementById('thinking-row');
+  if (el) el.remove();
+}
+
+function inject(text, hint) {
+  addUserMsg(text);
+  showThinking();
+  setFace('thinking');
+
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) {
+    S.ws.send(JSON.stringify({ type: 'chat', message: text, hint }));
+  } else {
+    // Demo fallback
+    setTimeout(() => setFace('speaking'), 400);
+    setTimeout(() => {
+      removeThinking();
+      addScatterMsg(demoResp(text, hint));
+      flashFace('happy', 2200);
+    }, 900 + Math.random() * 400);
+  }
+}
+
+function demoResp(text, hint) {
+  const t = text.toLowerCase();
+  if (hint==='weather'  || /weather|temp|forecast/.test(t))    return "It's 58° and partly cloudy in Garden City. Humidity at 62%, northwest wind 11 mph. High of 63° this afternoon.";
+  if (hint==='calendar' || /calendar|schedule|today/.test(t))  return "Three things today: team standup at 9, design review at 11:30, and your Scatter demo at 2 PM on Zoom.";
+  if (hint==='email'    || /email|inbox|unread/.test(t))       return "2 unread. Sam is positive on the Scatter timeline. Jordan wants to move Friday's meeting to 3 PM.";
+  if (hint==='music'    || /music|play|spotify/.test(t))       return 'Nothing currently playing on Spotify. Want me to start something?';
+  if (hint==='home'     || /light|home|thermostat/.test(t))    return "Living room and kitchen lights are on. Thermostat at 70°F. Bedroom and office are off.";
+  if (hint==='news'     || /news|headline/.test(t))            return "Top story: NYC launches expanded bike lane program across midtown, aiming to cut commute times significantly.";
+  if (hint==='medications'|| /med|pill|take|prescription/.test(t)) return "Levothyroxine and Vitamin D3 taken this morning. Metformin at noon and Lisinopril at 8 PM still coming up. Metformin is due for a refill.";
+  if (hint==='contacts' || /contact|call|phone/.test(t))       return "I have 6 contacts saved. Who are you looking for?";
+  if (hint==='memory'   || /remember|know about me/.test(t))   return "I know you're in Garden City, you prefer morning briefings, and you're working on Scatter. Your meds are scheduled at 8 AM and 8 PM.";
+  return "Understood. Anything else I can help with?";
+}
+
+function sendMsg() {
+  const inp = document.getElementById('msg-input');
+  const t = inp.value.trim();
+  if (!t) return;
+  inp.value = '';
+  inject(t);
+}
+document.getElementById('msg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+/* ───────────────────────────────────────────
+   MIC TOGGLE
+─────────────────────────────────────────── */
+function toggleMic() {
+  S.micOn = !S.micOn;
+  document.getElementById('mic-btn').classList.toggle('active', S.micOn);
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) {
+    S.ws.send(JSON.stringify({ type: S.micOn ? 'start_listening' : 'stop_listening' }));
+  }
+  setFace(S.micOn ? 'listening' : 'idle');
+}
+
+/* ───────────────────────────────────────────
+   MUSIC CONTROLS
+─────────────────────────────────────────── */
+function mCmd(cmd) {
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) {
+    S.ws.send(JSON.stringify({ type: 'action', action: cmd }));
+  }
+  if (cmd === 'play_pause') {
+    S.playing = !S.playing;
+    S.music.playing = S.playing;
+    const ico = document.getElementById('play-ico');
+    ico.innerHTML = S.playing
+      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+    const art = document.getElementById('d-music-art');
+    art.classList.toggle('playing', S.playing);
+    S.playing ? startProg() : stopProg();
+  }
+}
+
+function startProg() {
+  stopProg();
+  S.progT = setInterval(() => {
+    S.progSec = Math.min(S.progSec + 1, S.totSec);
+    S.music.prog = S.progSec;
+    document.getElementById('d-music-fill').style.width = Math.round(S.progSec / S.totSec * 100) + '%';
+    document.getElementById('d-music-cur').textContent = fmt(S.progSec);
+    if (S.progSec >= S.totSec) stopProg();
+  }, 1000);
+}
+function stopProg() { if (S.progT) clearInterval(S.progT); }
+function fmt(s) { return Math.floor(s/60) + ':' + (s%60<10?'0':'') + s%60; }
+
+/* ───────────────────────────────────────────
+   HOME DEVICE TOGGLE
+─────────────────────────────────────────── */
+function toggleDevice(id) {
+  const d = S.home.find(x => x.id === id);
+  if (!d) return;
+  d.on = !d.on;
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) {
+    S.ws.send(JSON.stringify({ type: 'action', action: d.on ? 'turn_on' : 'turn_off', entity_id: id }));
+  }
+  renderHomePanel();
+  addScatterMsg(`${d.name} turned ${d.on ? 'on' : 'off'}.`);
+}
+
+/* ───────────────────────────────────────────
+   RENDER PANELS
+─────────────────────────────────────────── */
+function renderWeatherPanel() {
+  const w = S.weather;
+  document.getElementById('d-wx-temp').textContent = w.temp + '°';
+  document.getElementById('d-wx-cond').textContent = w.cond || '';
+  document.getElementById('d-wx-fl').textContent   = w.feels + '°';
+  document.getElementById('d-wx-hu').textContent   = w.hum + '%';
+  document.getElementById('d-wx-wi').textContent   = w.wind + ' mph';
+  document.getElementById('d-wx-uv').textContent   = w.uv;
+
+  // Use real hourly data from backend if available
+  const hourly = w.hourly || [];
+  if (hourly.length) {
+    document.getElementById('d-wx-hourly').innerHTML = hourly.map(h =>
+      `<div class="wx-hr"><div class="wx-hr-t">${h.label}</div><div class="wx-hr-i">${h.icon}</div><div class="wx-hr-v">${h.temp}°</div></div>`
+    ).join('');
+  }
+}
+
+// Calendar state
+let calDate = new Date();
+let calMode = 'day';
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function calNav(dir) {
+  if (calMode === 'day') calDate.setDate(calDate.getDate() + dir);
+  else if (calMode === 'week') calDate.setDate(calDate.getDate() + (dir * 7));
+  else calDate.setMonth(calDate.getMonth() + dir);
+  renderCalendarPanel();
+}
+
+function calView(mode) {
+  calMode = mode;
+  document.querySelectorAll('.cal-view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === mode));
+  document.getElementById('cal-day-view').style.display = mode === 'day' ? 'block' : 'none';
+  document.getElementById('cal-week-view').style.display = mode === 'week' ? 'grid' : 'none';
+  document.getElementById('cal-month-view').style.display = mode === 'month' ? 'block' : 'none';
+  renderCalendarPanel();
+}
+
+function renderCalendarPanel() {
+  const today = new Date();
+  const isToday = calDate.toDateString() === today.toDateString();
+  
+  // Header
+  if (calMode === 'day') {
+    document.getElementById('d-cal-day').textContent = DAYS[calDate.getDay()];
+    document.getElementById('d-cal-date').textContent = MONTHS[calDate.getMonth()] + ' ' + calDate.getDate() + ', ' + calDate.getFullYear();
+  } else if (calMode === 'week') {
+    const start = new Date(calDate);
+    start.setDate(start.getDate() - start.getDay());
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    document.getElementById('d-cal-day').textContent = 'Week View';
+    document.getElementById('d-cal-date').textContent = MONTHS[start.getMonth()] + ' ' + start.getDate() + ' - ' + (end.getMonth() !== start.getMonth() ? MONTHS[end.getMonth()] + ' ' : '') + end.getDate();
+  } else {
+    document.getElementById('d-cal-day').textContent = MONTHS[calDate.getMonth()];
+    document.getElementById('d-cal-date').textContent = calDate.getFullYear();
+  }
+
+  // Day View
+  if (calMode === 'day') {
+    let html = '';
+    for (let h = 7; h <= 21; h++) {
+      const hourLabel = h > 12 ? (h-12) + ' PM' : (h === 12 ? '12 PM' : h + ' AM');
+      const hourEvents = S.events.filter(e => {
+        const match = e.time && e.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (!match) return false;
+        let eventHour = parseInt(match[1]);
+        if (match[3].toUpperCase() === 'PM' && eventHour !== 12) eventHour += 12;
+        if (match[3].toUpperCase() === 'AM' && eventHour === 12) eventHour = 0;
+        return eventHour === h;
+      });
+      html += '<div class="cal-hour-row"><div class="cal-hour-label">' + hourLabel + '</div><div class="cal-hour-content">';
+      hourEvents.forEach(e => {
+        html += '<div class="cal-event" onclick="inject(\'Tell me about ' + e.name + '\')"><div class="cal-event-time">' + e.time + '</div><div class="cal-event-name">' + e.name + '</div>' + (e.sub ? '<div class="cal-event-sub">' + e.sub + '</div>' : '') + '</div>';
+      });
+      html += '</div></div>';
+    }
+    document.getElementById('cal-day-view').innerHTML = html;
+  }
+
+  // Week View
+  if (calMode === 'week') {
+    const start = new Date(calDate);
+    start.setDate(start.getDate() - start.getDay());
+    let html = '';
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start);
+      day.setDate(day.getDate() + d);
+      const isT = day.toDateString() === today.toDateString();
+      const dayEvents = S.events.filter(e => e.time && e.time.includes(DAYS[d]));
+      html += '<div class="cal-week-day' + (isT ? ' today' : '') + '" onclick="calDate=new Date(' + day.getTime() + ');calView(\'day\')">';
+      html += '<div class="cal-week-day-header"><span class="cal-week-day-name">' + DAYS_SHORT[d] + '</span><span class="cal-week-day-num">' + day.getDate() + '</span></div>';
+      dayEvents.slice(0,3).forEach(e => {
+        html += '<div class="cal-week-event">' + e.name + '</div>';
+      });
+      if (dayEvents.length > 3) html += '<div style="font-size:9px;color:var(--ink-4)">+' + (dayEvents.length-3) + ' more</div>';
+      html += '</div>';
+    }
+    document.getElementById('cal-week-view').innerHTML = html;
+  }
+
+  // Month View
+  if (calMode === 'month') {
+    document.getElementById('cal-month-headers').innerHTML = DAYS_SHORT.map(d => '<div class="cal-month-header">' + d + '</div>').join('');
+    const first = new Date(calDate.getFullYear(), calDate.getMonth(), 1);
+    const last = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0);
+    const startDay = first.getDay();
+    let html = '';
+    // Previous month days
+    const prevLast = new Date(calDate.getFullYear(), calDate.getMonth(), 0);
+    for (let i = startDay - 1; i >= 0; i--) {
+      html += '<div class="cal-month-day other-month"><div class="cal-month-day-num">' + (prevLast.getDate() - i) + '</div></div>';
+    }
+    // Current month days
+    for (let d = 1; d <= last.getDate(); d++) {
+      const isT = d === today.getDate() && calDate.getMonth() === today.getMonth() && calDate.getFullYear() === today.getFullYear();
+      const hasEvent = S.events.some(e => e.time && e.time.includes(String(d)));
+      html += '<div class="cal-month-day' + (isT ? ' today' : '') + '" onclick="calDate.setDate(' + d + ');calView(\'day\')"><div class="cal-month-day-num">' + d + '</div>' + (hasEvent ? '<div class="cal-month-dot"></div>' : '') + '</div>';
+    }
+    // Next month days
+    const remaining = 42 - (startDay + last.getDate());
+    for (let i = 1; i <= remaining; i++) {
+      html += '<div class="cal-month-day other-month"><div class="cal-month-day-num">' + i + '</div></div>';
+    }
+    document.getElementById('cal-month-days').innerHTML = html;
+  }
+}
+
+function renderMusicPanel() {
+  const m = S.music || {};
+  const artEl = document.getElementById('d-music-art');
+  if (artEl) artEl.innerHTML = m.art ? `<img src="${m.art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">` : '♪';
+  const t = v => document.getElementById(v);
+  if (t('d-music-title'))  t('d-music-title').textContent  = m.title  || 'Nothing playing';
+  if (t('d-music-artist')) t('d-music-artist').textContent = m.artist || '—';
+  if (t('d-music-album'))  t('d-music-album').textContent  = m.album  || '';
+  const prog = m.progress || 0, dur = m.duration || 0;
+  const pct = dur > 0 ? Math.min(100, (prog/dur)*100) : 0;
+  if (t('d-music-fill')) t('d-music-fill').style.width = pct + '%';
+  const fmt = ms => { const s = Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+  if (t('d-music-cur')) t('d-music-cur').textContent = fmt(prog);
+  if (t('d-music-dur')) t('d-music-dur').textContent = fmt(dur);
+  if (t('d-music-playpause')) t('d-music-playpause').textContent = m.playing ? '⏸' : '▶';
+  // Recently played
+  const rec = document.getElementById('d-music-recent');
+  if (rec && S.recent && S.recent.length) {
+    rec.innerHTML = S.recent.map(r => `
+      <div onclick="inject('Play ${r.title} by ${r.artist}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:background .15s" onmouseover="this.style.background='rgba(196,160,80,0.06)'" onmouseout="this.style.background='transparent'">
+        <div style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:var(--cream-3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink-5)">
+          ${r.art ? `<img src="${r.art}" style="width:100%;height:100%;object-fit:cover">` : '♪'}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.title}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-4);margin-top:1px">${r.artist}</div>
+        </div>
+        <div style="font-size:14px;color:var(--ink-5)">▶</div>
+      </div>`).join('');
+  }
+}
+
+function musicTab(tab) {
+  ['now','queue','library'].forEach(t => {
+    const btn = document.getElementById('mtab-'+t);
+    const view = document.getElementById('d-music-'+(t==='now'?'now':t)+'-view');
+    if (btn) { btn.style.background = t===tab ? 'var(--gold)' : 'transparent'; btn.style.color = t===tab ? 'white' : 'var(--ink-4)'; }
+    if (view) view.style.display = t===tab ? '' : 'none';
+  });
+  if (tab==='queue')   renderMusicQueue();
+  if (tab==='library') renderMusicLibrary();
+}
+
+function renderMusicQueue() {
+  const el = document.getElementById('d-music-queue');
+  if (!el) return;
+  const q = S.queue || [];
+  if (!q.length) { el.innerHTML = '<div style="color:var(--ink-4);font-size:13px;font-style:italic;padding:12px 0">Queue is empty.</div>'; return; }
+  el.innerHTML = q.map((t,i) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:linear-gradient(90deg,#faf7f2,#f5f0e8);margin-bottom:6px;border:1px solid rgba(196,160,80,0.1)">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(196,160,80,0.5);min-width:16px">${i+1}</div>
+      <div style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:var(--cream-3);flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        ${t.art ? `<img src="${t.art}" style="width:100%;height:100%;object-fit:cover">` : '♪'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'VT323',monospace;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--ink-4)">${t.artist}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderMusicLibrary() {
+  const el = document.getElementById('d-music-library');
+  if (!el) return;
+  const lib = S.library || [];
+  if (!lib.length) { el.innerHTML = '<div style="color:var(--ink-4);font-size:13px;font-style:italic;padding:12px 0">Library empty.</div>'; return; }
+  el.style.cssText = 'display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;border:1px solid rgba(196,160,80,0.15)';
+  el.innerHTML = lib.map((t,i) => `
+    <div onclick="inject('Play ${t.title} by ${t.artist}')" style="display:flex;align-items:center;gap:14px;padding:11px 14px;cursor:pointer;border-bottom:1px solid rgba(196,160,80,0.08);background:linear-gradient(90deg,#faf7f2,#f5f0e8)" onmouseover="this.style.background='linear-gradient(90deg,#f0e9d8,#ebe0c8)'" onmouseout="this.style.background='linear-gradient(90deg,#faf7f2,#f5f0e8)'">
+      <div style="width:42px;height:42px;border-radius:4px;overflow:hidden;background:#e8dfc8;display:flex;align-items:center;justify-content:center;font-size:16px;color:#999;flex-shrink:0;box-shadow:2px 2px 6px rgba(0,0,0,0.12)">
+        ${t.art ? `<img src="${t.art}" style="width:100%;height:100%;object-fit:cover">` : '♪'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'VT323',monospace;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${t.title}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.05em;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.artist}</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(196,160,80,0.6);min-width:16px;text-align:right">${i+1}</div>
+    </div>`).join('');
+}
+
+function musicCmd(cmd) {
+  if (!S.ws || S.ws.readyState !== 1) return;
+  const map = { previous: 'previous', skip: 'skip', playpause: S.music && S.music.playing ? 'pause' : 'play' };
+  S.ws.send(JSON.stringify({ type: 'action', action: map[cmd] }));
+}
+
+
+function renderEmailPanel() {
+  const el = document.getElementById('d-email-list');
+  if (!el) return;
+  if (!S.emails || !S.emails.length) {
+    el.innerHTML = '<div style="color:var(--ink-4);font-size:13px;font-style:italic;padding:16px 0">No unread emails.</div>';
+    return;
+  }
+  el.style.cssText = 'display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;border:1px solid rgba(196,160,80,0.15)';
+  el.innerHTML = S.emails.map((e,i) => `
+    <div onclick="readEmail(${i})" style="padding:12px 14px;border-bottom:1px solid rgba(196,160,80,0.08);background:linear-gradient(90deg,#faf7f2,#f5f0e8);cursor:pointer" onmouseover="this.style.background='linear-gradient(90deg,#f0e9d8,#ebe0c8)'" onmouseout="this.style.background='linear-gradient(90deg,#faf7f2,#f5f0e8)'">
+      <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;color:var(--gold);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.from.replace(/<.*?>/, '').trim() || e.from}</div>
+      <div style="font-family:'VT323',monospace;font-size:13px;color:var(--ink);margin-bottom:4px;line-height:1.3">${e.subj || '(no subject)'}</div>
+      <div style="font-size:11px;color:var(--ink-4);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${e.snippet || ''}</div>
+    </div>`).join('');
+}
+
+function readEmail(idx) {
+  const e = S.emails[idx];
+  if (!e) return;
+  inject('Read and summarize the email from ' + e.from + ' about: ' + e.subj);
+  emailTab('inbox');
+}
+
+function emailTab(tab) {
+  const inbox = document.getElementById('d-email-inbox-view');
+  const compose = document.getElementById('d-email-compose-view');
+  const etabInbox = document.getElementById('etab-inbox');
+  const etabCompose = document.getElementById('etab-compose');
+  if (inbox) inbox.style.display = tab === 'inbox' ? '' : 'none';
+  if (compose) compose.style.display = tab === 'compose' ? '' : 'none';
+  if (etabInbox) { etabInbox.style.background = tab==='inbox' ? 'var(--gold)' : 'transparent'; etabInbox.style.color = tab==='inbox' ? 'white' : 'var(--ink-4)'; }
+  if (etabCompose) { etabCompose.style.background = tab==='compose' ? 'var(--gold)' : 'transparent'; etabCompose.style.color = tab==='compose' ? 'white' : 'var(--ink-4)'; }
+}
+
+async function scatterDraftEmail() {
+  const to = document.getElementById('compose-to').value;
+  const subject = document.getElementById('compose-subject').value;
+  const bodyEl = document.getElementById('compose-body');
+  const status = document.getElementById('compose-status');
+  const hint = bodyEl.value || 'a warm, thoughtful message';
+  status.textContent = 'Scatter is drafting...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': window.__HZL_KEY||'', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 600,
+        messages: [{ role: 'user', content: `You are Scatter, a direct, humane assistant focused on clarity and care — not performance. Draft an email to ${to||'the recipient'}${subject?' about: '+subject:''}. Tone/intent: ${hint}. Write ONLY the email body, no subject line, no preamble. Sign from Ryann.` }] })
+    });
+    const data = await res.json();
+    const draft = data.content?.[0]?.text?.trim();
+    if (draft) { bodyEl.value = draft; status.textContent = '✦ Draft ready — edit freely'; }
+    else status.textContent = 'Something went wrong.';
+  } catch(e) { status.textContent = 'Draft failed.'; }
+}
+
+async function sendComposedEmail() {
+  const to = document.getElementById('compose-to').value.trim();
+  const subject = document.getElementById('compose-subject').value.trim();
+  const body = document.getElementById('compose-body').value.trim();
+  const status = document.getElementById('compose-status');
+  if (!to || !body) { status.textContent = 'Add a recipient and message first.'; return; }
+  status.textContent = 'Sending...';
+  if (S.ws && S.ws.readyState === 1) {
+    S.ws.send(JSON.stringify({ type: 'chat', message: `[GMAIL: send ${to}|${subject||'(no subject)'}|${body}]` }));
+    status.textContent = '✓ Sent';
+    setTimeout(() => {
+      document.getElementById('compose-to').value = '';
+      document.getElementById('compose-subject').value = '';
+      document.getElementById('compose-body').value = '';
+      status.textContent = '';
+      emailTab('inbox');
+    }, 1800);
+  } else { status.textContent = 'Not connected.'; }
+}
+
+
+function renderHomePanel() {
+  if (!document.getElementById('d-home-grid')) return;
+  document.getElementById('d-home-grid').innerHTML = S.home.map(d =>
+    `<div class="home-device ${d.on?'on':''}" onclick="toggleDevice('${d.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="device-ico">${d.icon}</span>
+        <div class="device-dot"></div>
+      </div>
+      <div class="device-name">${d.name}</div>
+      <div class="device-val">${d.val || (d.on?'On':'Off')}</div>
+    </div>`
+  ).join('');
+}
+
+function newsCategory(cat) {
+  document.querySelectorAll('.news-cat-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === cat));
+  // Map UI names to NewsAPI categories
+  const catMap = {all: 'general', tech: 'technology', business: 'business', science: 'science'};
+  const apiCat = catMap[cat] || 'general';
+  // Request news refresh via WebSocket
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) {
+    S.ws.send(JSON.stringify({type: 'news_category', category: apiCat}));
+  }
+}
+
+function readNews(title, url) {
+  if (url) {
+    inject('Read this news article for me: ' + url + ' - ' + title, 'news');
+  } else {
+    inject('Search for news about: ' + title, 'news');
+  }
+}
+
+function renderNewsPanel() {
+  const news = S.news || [];
+  if (!news.length) {
+    document.getElementById('d-news-list').innerHTML = '<div style="text-align:center;color:var(--ink-4);padding:40px">Loading news...</div>';
+    return;
+  }
+  document.getElementById('d-news-list').innerHTML = news.map(n => `
+    <div class="news-card" onclick="readNews('${(n.title||'').replace(/'/g, '')}', '${n.url||''}')">
+      ${n.img ? '<img class="news-img" src="'+n.img+'" onerror="this.style.display=\'none\'">' : '<div class="news-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--cream-2)">📰</div>'}
+      <div class="news-content">
+        <div class="news-source">${n.src || 'News'}</div>
+        <div class="news-title">${n.title || ''}</div>
+        <div class="news-summary">${n.summary || ''}</div>
+        <div class="news-time">${n.time || ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMedsPanel() {
+  const today = S.medications.filter(m => !m.refill || true);
+  document.getElementById('d-med-list').innerHTML = today.map(m =>
+    `<div class="med-item ${m.taken?'med-taken':''}" onclick="inject('${m.taken?'I already took':'Remind me to take'} my ${m.name}')">
+      <span class="med-ico">${m.icon}</span>
+      <div>
+        <div class="med-name">${m.name}<span class="med-badge ${m.taken?'ok':''}">${m.taken?'taken':'pending'}</span></div>
+        <div class="med-dose">${m.dose}</div>
+      </div>
+      <div class="med-time">${m.time}</div>
+    </div>`
+  ).join('');
+
+  const refills = S.medications.filter(m => m.refill);
+  document.getElementById('d-med-refills').innerHTML = refills.length
+    ? refills.map(m =>
+        `<div class="med-item" onclick="inject('Help me refill my ${m.name} prescription')">
+          <span class="med-ico">${m.icon}</span>
+          <div>
+            <div class="med-name">${m.name}<span class="med-badge">refill needed</span></div>
+            <div class="med-dose">${m.dose}</div>
+          </div>
+        </div>`
+      ).join('')
+    : `<div style="font-size:12px;color:var(--ink-5);padding:8px 0">All prescriptions up to date.</div>`;
+}
+
+function filterContacts() {
+  const q = document.getElementById('contact-search').value.toLowerCase();
+  document.querySelectorAll('.contact-card').forEach(c => {
+    c.style.display = c.dataset.name.toLowerCase().includes(q) ? 'block' : 'none';
+  });
+}
+
+function renderContactsPanel() {
+  const contacts = S.contacts || [];
+  if (!contacts.length) {
+    document.getElementById('d-contact-list').innerHTML = '<div style="text-align:center;color:var(--ink-4);padding:40px">No contacts yet</div>';
+    return;
+  }
+  // Color palette for avatars
+  const colors = ['var(--gold)', 'var(--rose)', 'var(--sage)', 'var(--sky)', '#9B7EBD', '#E57373', '#64B5F6'];
+  document.getElementById('d-contact-list').innerHTML = contacts.slice(0, 20).map((c, i) => {
+    const name = c.name || c.email?.split('@')[0] || 'Unknown';
+    const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const bgColor = colors[i % colors.length];
+    const role = c.note || (c.email?.includes('@') ? c.email.split('@')[1] : '');
+    return `<div class="contact-card" data-name="${name}" onclick="inject('Show me info for ${name}')">
+      <div class="contact-avatar" style="background:${bgColor}">${initials}</div>
+      <div class="contact-name">${name}</div>
+      <div class="contact-role">${role}</div>
+      <div class="contact-actions-row">
+        ${c.phone ? '<button class="contact-action-btn" onclick="event.stopPropagation();window.open(\'tel:'+c.phone+'\')">📞</button>' : ''}
+        <button class="contact-action-btn" onclick="event.stopPropagation();inject('Email ${name}')">✉️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMemoryPanel() {
+  document.getElementById('d-memory-list').innerHTML = S.memory.map(m =>
+    `<div class="mem-item"><div class="mem-cat">${m.cat}</div><div class="mem-val">${m.val}</div></div>`
+  ).join('');
+}
+function renderSuggestionsPanel() {
+  const hour = new Date().getHours();
+  const panel = S.activeTab || 'weather';
+  
+  // Time-of-day suggestions (expanded)
+  let timeSugs = [];
+  if (hour >= 5 && hour < 9) {
+    timeSugs = [
+      {icon: '☀️', text: 'What\'s on my calendar today?', hint: 'morning briefing', cat: 'Morning'},
+      {icon: '📰', text: 'Show me today\'s top news', hint: 'daily news', cat: 'Morning'},
+      {icon: '🌤️', text: 'What\'s the weather forecast?', hint: 'weather check', cat: 'Morning'},
+      {icon: '✉️', text: 'Any urgent emails overnight?', hint: 'email triage', cat: 'Morning'},
+      {icon: '🎯', text: 'What should I focus on today?', hint: 'priority planning', cat: 'Morning'}
+    ];
+  } else if (hour >= 9 && hour < 12) {
+    timeSugs = [
+      {icon: '📅', text: 'What\'s my next meeting?', hint: 'calendar lookup', cat: 'Work'},
+      {icon: '✉️', text: 'Summarize my unread emails', hint: 'email check', cat: 'Work'},
+      {icon: '☕', text: 'Set a reminder for 2pm', hint: 'reminder', cat: 'Work'},
+      {icon: '📝', text: 'What\'s on my task list?', hint: 'todo review', cat: 'Work'},
+      {icon: '🎵', text: 'Play focus music', hint: 'productivity playlist', cat: 'Work'}
+    ];
+  } else if (hour >= 12 && hour < 17) {
+    timeSugs = [
+      {icon: '🍽️', text: 'What\'s a good lunch spot nearby?', hint: 'lunch recommendation', cat: 'Afternoon'},
+      {icon: '📊', text: 'Recap this morning\'s meetings', hint: 'meeting summary', cat: 'Afternoon'},
+      {icon: '✅', text: 'What have I completed today?', hint: 'progress check', cat: 'Afternoon'},
+      {icon: '📧', text: 'Draft a follow-up email', hint: 'email composition', cat: 'Afternoon'},
+      {icon: '🔋', text: 'How much time until my next call?', hint: 'schedule buffer', cat: 'Afternoon'}
+    ];
+  } else if (hour >= 17 && hour < 22) {
+    timeSugs = [
+      {icon: '🎵', text: 'Play some jazz', hint: 'music control', cat: 'Evening'},
+      {icon: '💡', text: 'Turn on the living room lights', hint: 'smart home', cat: 'Evening'},
+      {icon: '📖', text: 'Summarize what happened today: review my calendar events, check emails I sent or received, and recap what I worked on', hint: 'daily recap', cat: 'Evening'},
+      {icon: '📺', text: 'What\'s on tonight?', hint: 'entertainment', cat: 'Evening'},
+      {icon: '🍷', text: 'Wine pairing for dinner', hint: 'recommendations', cat: 'Evening'}
+    ];
+  } else {
+    timeSugs = [
+      {icon: '🌙', text: 'Set an alarm for 7am', hint: 'alarm', cat: 'Night'},
+      {icon: '🎶', text: 'Play something calming', hint: 'music for sleep', cat: 'Night'},
+      {icon: '💤', text: 'Good night routine', hint: 'bedtime scene', cat: 'Night'},
+      {icon: '📚', text: 'Recommend a bedtime read', hint: 'book suggestion', cat: 'Night'},
+      {icon: '🔒', text: 'Lock all doors and turn off lights', hint: 'security scene', cat: 'Night'}
+    ];
+  }
+  
+  // Panel-specific suggestions (expanded)
+  let panelSugs = [];
+  if (panel === 'calendar') {
+    panelSugs = [
+      {icon: '➕', text: 'Add a meeting tomorrow at 2pm', hint: 'create event', cat: 'Calendar'},
+      {icon: '🗓️', text: 'What does my week look like?', hint: 'week view', cat: 'Calendar'},
+      {icon: '⏰', text: 'When is my next appointment?', hint: 'upcoming events', cat: 'Calendar'},
+      {icon: '🔍', text: 'Find time for a 30-minute meeting this week', hint: 'availability search', cat: 'Calendar'},
+      {icon: '🚫', text: 'Cancel my 3pm meeting', hint: 'event management', cat: 'Calendar'}
+    ];
+  } else if (panel === 'music') {
+    panelSugs = [
+      {icon: '🎵', text: 'Play Fleet Foxes', hint: 'artist search', cat: 'Music'},
+      {icon: '🎧', text: 'What\'s in my queue?', hint: 'queue view', cat: 'Music'},
+      {icon: '⏭️', text: 'Skip to the next track', hint: 'playback control', cat: 'Music'},
+      {icon: '💿', text: 'Play my liked songs', hint: 'library access', cat: 'Music'},
+      {icon: '🎼', text: 'Create a playlist for focus', hint: 'playlist generation', cat: 'Music'}
+    ];
+  } else if (panel === 'email') {
+    panelSugs = [
+      {icon: '✍️', text: 'Draft an email to my accountant', hint: 'compose with AI', cat: 'Email'},
+      {icon: '📬', text: 'Show me unread emails', hint: 'inbox filter', cat: 'Email'},
+      {icon: '🔍', text: 'Search my emails for "invoice"', hint: 'email search', cat: 'Email'},
+      {icon: '⭐', text: 'What are my starred emails?', hint: 'important messages', cat: 'Email'},
+      {icon: '📤', text: 'Send a quick reply to the last email', hint: 'fast response', cat: 'Email'}
+    ];
+  } else if (panel === 'home') {
+    panelSugs = [
+      {icon: '💡', text: 'Turn off all lights', hint: 'scene control', cat: 'Home'},
+      {icon: '🎬', text: 'Set movie mode', hint: 'scene trigger', cat: 'Home'},
+      {icon: '🌡️', text: 'Set thermostat to 72', hint: 'climate control', cat: 'Home'},
+      {icon: '🔐', text: 'Lock the front door', hint: 'security', cat: 'Home'},
+      {icon: '☀️', text: 'Open the bedroom blinds', hint: 'shade control', cat: 'Home'}
+    ];
+  } else if (panel === 'news') {
+    panelSugs = [
+      {icon: '📰', text: 'What\'s the top story today?', hint: 'headline news', cat: 'News'},
+      {icon: '💼', text: 'Show me business news', hint: 'category filter', cat: 'News'},
+      {icon: '🔬', text: 'Any new science breakthroughs?', hint: 'science news', cat: 'News'},
+      {icon: '🌍', text: 'What\'s happening internationally?', hint: 'world news', cat: 'News'},
+      {icon: '📊', text: 'Tech industry news', hint: 'tech filter', cat: 'News'}
+    ];
+  } else if (panel === 'weather') {
+    panelSugs = [
+      {icon: '🌤️', text: 'What\'s the weather today?', hint: 'current conditions', cat: 'Weather'},
+      {icon: '🌧️', text: 'Will it rain this week?', hint: 'forecast lookup', cat: 'Weather'},
+      {icon: '🌡️', text: 'What\'s the high today?', hint: 'temperature check', cat: 'Weather'},
+      {icon: '☂️', text: 'Should I bring an umbrella?', hint: 'rain probability', cat: 'Weather'},
+      {icon: '🌅', text: 'When\'s sunset tonight?', hint: 'sun times', cat: 'Weather'}
+    ];
+  }
+  
+  // Combine and pick 6 suggestions (increased from 5)
+  const allSugs = [...panelSugs, ...timeSugs];
+  const picks = allSugs.slice(0, 6);
+  
+  // Render
+  const html = picks.map(s => `
+    <div class="sug-card" onclick="inject('${s.text.replace(/'/g, "\\'")}', 'suggestion')">
+      <span class="sug-icon">${s.icon}</span>
+      <div class="sug-content">
+        <div class="sug-category">${s.cat}</div>
+        <div class="sug-text">${s.text}</div>
+        <div class="sug-hint">${s.hint}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  document.getElementById('d-suggestions-list').innerHTML = html;
+}
+function renderTasksPanel() {
+  const list = document.getElementById('d-task-list');
+  if (!S.tasks || S.tasks.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--ink-4);padding:40px;font-size:13px">No tasks yet. Add one above or say "Add a task: ..."</div>';
+    return;
+  }
+  
+  list.innerHTML = S.tasks.map((t, i) => `
+    <div class="task-item ${t.done ? 'done' : ''}">
+      <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${i})"></div>
+      <div class="task-text">${t.text}</div>
+      <button class="task-delete" onclick="deleteTask(${i})" title="Delete task">×</button>
+    </div>
+  `).join('');
+}
+
+function addTask(text) {
+  if (!text || !text.trim()) return;
+  S.tasks.push({ text: text.trim(), done: false, created: new Date().toISOString() });
+  renderTasksPanel();
+  document.getElementById('task-input').value = '';
+}
+
+function toggleTask(idx) {
+  if (S.tasks[idx]) {
+    S.tasks[idx].done = !S.tasks[idx].done;
+    renderTasksPanel();
+  }
+}
+
+function deleteTask(idx) {
+  S.tasks.splice(idx, 1);
+  renderTasksPanel();
+}
+
+// Enter key to add task
+
+/* ───────────────────────────────────────────
+   INIT
+─────────────────────────────────────────── */
+renderWeatherPanel();
+renderCalendarPanel();
+renderMusicPanel();
+renderEmailPanel();
+renderHomePanel();
+renderNewsPanel();
+renderMedsPanel();
+renderContactsPanel();
+renderMemoryPanel();
+renderSuggestionsPanel();
+renderTasksPanel();
+// Setup task input listener
+setTimeout(() => {
+  const input = document.getElementById('task-input');
+  if (input) {
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') addTask(input.value);
+    });
+  }
+}, 100);
+setFace('idle');
+connectWS();
+</script>
+</body>
+</html>

@@ -6,10 +6,10 @@ import threading
 import os
 import sys
 
-class HazelLauncher:
+class ScatterLauncher:
     def __init__(self, root):
         self.root = root
-        self.root.title("Hazel — AI Assistant")
+        self.root.title("Scatter — AI assistant")
         self.root.geometry("1200x700")
         self.root.configure(bg="#1a1a1a")
         
@@ -20,7 +20,7 @@ class HazelLauncher:
         header = tk.Frame(root, bg="#242424", height=60)
         header.pack(fill=tk.X)
         
-        title = tk.Label(header, text="⬢ Hazel", font=("Playfair Display", 24, "bold"), 
+        title = tk.Label(header, text="⬢ Scatter", font=("Playfair Display", 24, "bold"), 
                         fg="#c4a050", bg="#242424")
         title.pack(side=tk.LEFT, padx=20, pady=12)
         
@@ -76,7 +76,7 @@ class HazelLauncher:
         ctrl_frame = tk.Frame(content, bg="#1a1a1a")
         ctrl_frame.pack(fill=tk.X, padx=0, pady=12)
         
-        self.start_btn = tk.Button(ctrl_frame, text="▶ Start Hazel", font=("DM Mono", 10),
+        self.start_btn = tk.Button(ctrl_frame, text="▶ Start Scatter", font=("DM Mono", 10),
                                    bg="#66bb6a", fg="white", relief=tk.FLAT, padx=20, pady=8,
                                    command=self.start_hazel)
         self.start_btn.pack(side=tk.LEFT, padx=(0, 6))
@@ -110,7 +110,7 @@ class HazelLauncher:
                 bufsize=1
             )
             
-            self.log_append("✓ Hazel started\n")
+            self.log_append("✓ Scatter started\n")
             self.status.config(text="● online", fg="#66bb6a")
             
             for line in self.hazel_process.stdout:
@@ -122,7 +122,7 @@ class HazelLauncher:
         if self.hazel_process:
             self.hazel_process.terminate()
             self.hazel_process.wait()
-            self.log_append("\n✓ Hazel stopped\n")
+            self.log_append("\n✓ Scatter stopped\n")
         
         self.is_running = False
         self.start_btn.config(state=tk.NORMAL)
@@ -138,7 +138,7 @@ class HazelLauncher:
         self.input_field.delete(0, tk.END)
         
         # TODO: connect to WebSocket
-        self.chat_append("Hazel: (thinking...)\n")
+        self.chat_append("Scatter: (thinking...)\n")
     
     def chat_append(self, text):
         self.chat_box.config(state=tk.NORMAL)
@@ -154,9 +154,9 @@ class HazelLauncher:
     
     def open_ui(self):
         import webbrowser
-        webbrowser.open("http://localhost:8082/hazel-v5.html")
+        webbrowser.open("http://localhost:8082/")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = HazelLauncher(root)
+    app = ScatterLauncher(root)
     root.mainloop()

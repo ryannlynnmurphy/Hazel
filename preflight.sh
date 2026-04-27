@@ -1,6 +1,6 @@
 #!/bin/bash
 # ---------------------------------------------------------
-#  HZL AI -- Pre-flight Check
+#  Scatter — pre-flight check
 #  Usage: bash ~/Hazel/preflight.sh
 # ---------------------------------------------------------
 
@@ -15,7 +15,7 @@ hdr()  { echo -e "\n${bold}$1${nc}"; }
 
 if [ -f "$HZL/.env" ]; then set -a; source "$HZL/.env"; set +a; fi
 
-echo -e "\n${bold}HZL AI -- Pre-flight Check${nc}"
+echo -e "\n${bold}Scatter — pre-flight check${nc}"
 echo "---------------------------------------------------------"
 
 # -- 1. ENV VARS --
@@ -58,7 +58,7 @@ fi
 
 # -- 5. UI FILE --
 hdr "5. UI File"
-[ -f "$HZL/ui/hazel-v5.html" ] && ok "hazel-v5.html in place" || fail "hazel-v5.html NOT FOUND in ui/"
+[ -f "$HZL/ui/scatter.html" ] && ok "scatter.html (Scatter OS shell) in place" || fail "scatter.html NOT FOUND in ui/"
 
 # -- 6. PYTHON DEPS --
 hdr "6. Python Dependencies"
@@ -109,7 +109,7 @@ if [ -n "$ELEVENLABS_API_KEY" ]; then
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 \
     "https://api.elevenlabs.io/v1/voices/Uc7anshoV8mdBhDnEZEX" \
     -H "xi-api-key: $ELEVENLABS_API_KEY" 2>/dev/null)
-  [ "$STATUS" = "200" ] && ok "ElevenLabs: Hazel voice confirmed" \
+  [ "$STATUS" = "200" ] && ok "ElevenLabs: voice confirmed" \
   || { [ "$STATUS" = "401" ] && fail "ElevenLabs key INVALID" || warn "ElevenLabs returned HTTP $STATUS"; }
 fi
 
@@ -119,7 +119,7 @@ BRAIN="$HZL/brain.py"
 VOICE_PY="$HZL/voice.py"
 [ -f "$BRAIN" ] && grep -q "claude-haiku-4-5-20251001" "$BRAIN" && ok "Haiku model string versioned" || warn "Check haiku model string in brain.py"
 [ -f "$BRAIN" ] && grep -q "claude-sonnet" "$BRAIN" && ok "Sonnet model string present"
-[ -f "$VOICE_PY" ] && grep -q "Uc7anshoV8mdBhDnEZEX" "$VOICE_PY" && ok "Hazel voice ID in voice.py" || fail "Wrong voice ID in voice.py"
+[ -f "$VOICE_PY" ] && grep -q "Uc7anshoV8mdBhDnEZEX" "$VOICE_PY" && ok "Voice ID in voice.py" || fail "Wrong voice ID in voice.py"
 
 # -- 12. WS CONTRACT --
 hdr "12. WebSocket Message Contract"
@@ -137,7 +137,7 @@ echo ""
 echo "---------------------------------------------------------"
 echo -e "${bold}Results: ${grn}${PASS} passed${nc}  ${red}${FAIL} failed${nc}  ${yel}${WARN} warnings${nc}"
 echo ""
-if   [ $FAIL -gt 0 ]; then echo -e "${red}Fix failures before starting Hazel.${nc}"
+if   [ $FAIL -gt 0 ]; then echo -e "${red}Fix failures before starting Scatter.${nc}"
 elif [ $WARN -gt 0 ]; then echo -e "${yel}Warnings are non-critical -- safe to start.${nc}"
 else                        echo -e "${grn}All clear. Run: bash $HZL/start.sh${nc}"
 fi

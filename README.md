@@ -1,18 +1,18 @@
-# Hazel
+# Scatter
 
-**Local-first voice AI assistant running on Raspberry Pi 5**
+**Local-first voice stack — dignity, aid, and a future you build on hardware you own (Raspberry Pi 5 and similar)**
 
 > *I live on a Raspberry Pi 5 in a small apartment. I run on-device speech recognition via Whisper. I handle most daily tasks through a local language model stored entirely on her hardware. Her memory, her patterns, her 2am thoughts -- those live in a SQLite database that belongs to her.*
 >
-> *-- Hazel, from "Mostly"*
+> *-- Scatter, from "Mostly"*
 
 ---
 
 ## Why I Built This
 
-I learned to code in February 2026. Within weeks, I shipped a patent-pending learning platform, a distributed inference cluster, and a voice assistant named Hazel -- all running on a $90 computer in my living room. I'm a playwright by training. Work read at Juilliard. A one-woman show at Edinburgh Fringe. Theater since childhood. What building Hazel taught me is that theater and software are the same discipline in different materials. Every system has a structure. Every structure is an argument. The question is always whose argument, built for whom, and what it costs you when you're not looking.
+I learned to code in February 2026. Within weeks, I shipped a patent-pending learning platform, a distributed inference cluster, and a voice assistant named Scatter -- all running on a $90 computer in my living room. I'm a playwright by training. Work read at Juilliard. A one-woman show at Edinburgh Fringe. Theater since childhood. What building Scatter taught me is that theater and software are the same discipline in different materials. Every system has a structure. Every structure is an argument. The question is always whose argument, built for whom, and what it costs you when you're not looking.
 
-Hazel is the system I actually live inside every day. She wakes up knowing my schedule, speaks in a voice I chose, routes tasks across a [physical air-gapped Pi cluster](https://github.com/ryannlynnmurphy/hzl-cluster), and handles the logistics that used to fragment my attention. The intelligence belongs to the person inside. That's the point.
+Scatter is the system I actually live inside every day. It wakes up knowing my schedule, speaks in a voice I chose, routes tasks across a [physical air-gapped Pi cluster](https://github.com/ryannlynnmurphy/hzl-cluster), and handles the logistics that used to fragment my attention. The intelligence belongs to the person inside. That's the point.
 
 ---
 
@@ -109,12 +109,12 @@ python3 gmail.py  # authorizes Gmail
 bash start.sh
 ```
 
-Then open `http://localhost:8082/hazel-v5.html` in a browser, or use the desktop launcher:
+Then open `http://localhost:8082/` (Scatter OS — `scatter.html`) in a browser, or use the desktop launcher:
 ```bash
 python3 launcher.py
 ```
 
-Stop Hazel:
+Stop Scatter:
 ```bash
 bash stop.sh
 ```
@@ -127,13 +127,13 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full breakdown of the STT
 
 ---
 
-## Part of the HZL Ecosystem
+## Part of the Scatter stack
 
-Hazel is the voice and brain of a broader infrastructure for sovereign, local-first computing.
+Scatter is the voice and brain of a broader infrastructure for sovereign, local-first computing.
 
 | Repo | Description |
 |---|---|
-| [Hazel](https://github.com/ryannlynnmurphy/Hazel) | This repo -- voice AI assistant |
+| [Hazel](https://github.com/ryannlynnmurphy/Hazel) (Scatter) | This repo — voice AI assistant |
 | [hzl-cluster](https://github.com/ryannlynnmurphy/hzl-cluster) | Air-gapped Pi cluster -- relay controller, queue protocol, gateway sync, 7 fetchers, deploy CLI, real-time dashboard |
 | [HZL-Academy-](https://github.com/ryannlynnmurphy/HZL-Academy-) | Patent-pending K-8 learning platform with AI verification |
 | [hzl-core](https://github.com/ryannlynnmurphy/hzl-core) | Shared design system -- tokens, components, brand identity |
@@ -146,6 +146,6 @@ MIT -- see [LICENSE](LICENSE)
 
 ---
 
-**Ryann Murphy** -- playwright, technologist, founder of HZL Studio. She taught herself to code in February 2026 and shipped a patent-pending platform, a distributed inference cluster, a hardware-integrated creative studio, and a voice assistant named Hazel in three months. The compute heats the water. The heat exchanger is load-bearing. The intelligence belongs to the person inside.
+**Ryann Murphy** -- playwright, technologist, founder of HZL Studio. She taught herself to code in February 2026 and shipped a patent-pending platform, a distributed inference cluster, a hardware-integrated creative studio, and a voice assistant named Scatter in three months. The compute heats the water. The heat exchanger is load-bearing. The intelligence belongs to the person inside.
 
 [hzlstudio.com](https://hzlstudio.com) -- [github.com/ryannlynnmurphy](https://github.com/ryannlynnmurphy)
